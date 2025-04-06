@@ -70,7 +70,7 @@ RepairLink is a platform that allows customers to book services from vendors and
 - **GET /api/service-history/{customerId}**: Get service history for a customer.
 
 ## Database Schema
-The database schema includes tables for users, roles, service providers, services, bookings, reviews, and service history. You can find the SQL schema in the `docs/` directory.
+The database schema includes tables for users, roles, service providers, services, bookings, reviews, and service history. You can find the SQL schema in the `src/main/resources/sql/MySQL` directory.
 
 ## Installation
 ### Prerequisites
@@ -82,7 +82,7 @@ The database schema includes tables for users, roles, service providers, service
 ### Backend Setup
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/repairlink.git
+   git clone https://github.com/Doc012/repairlink.git
    cd repairlink
    ```
 
