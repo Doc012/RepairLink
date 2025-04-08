@@ -16,7 +16,7 @@ import java.util.List;
 public class ServiceProviderController {
     private final ServiceProviderService serviceProviderService;
 
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<ServiceProvider> createServiceProvider(
             @RequestBody ServiceProviderDTO serviceProviderDTO) {
 
@@ -26,19 +26,19 @@ public class ServiceProviderController {
     }
 
 
-    @PutMapping("/{id}")
+    @PutMapping("update/{id}")
     public ResponseEntity<ServiceProvider> updateServiceProvider(@PathVariable int id, @RequestBody ServiceProviderDTO serviceProviderDTO) {
         ServiceProvider serviceProvider = serviceProviderService.updateServiceProvider(id, serviceProviderDTO);
         return ResponseEntity.ok(serviceProvider);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> deleteServiceProvider(@PathVariable int id) {
         serviceProviderService.deleteServiceProvider(id);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("provider/{id}")
     public ResponseEntity<ServiceProvider> getServiceProviderById(@PathVariable int id) {
         ServiceProvider serviceProvider = serviceProviderService.getServiceProviderById(id);
         return ResponseEntity.ok(serviceProvider);

@@ -49,10 +49,38 @@ public class SecurityConfig {
                             "favicon.ico",
                             "/error"
                     ).permitAll();
-                    auth.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
-                    auth.requestMatchers("/api/v1/user/**").hasAuthority("ROLE_USER");
-                    auth.requestMatchers("/api/v1/bookings/**").hasAuthority("ROLE_CUSTOMER");
-                    auth.requestMatchers("/api/v1/bookings/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/customers/admin/**").hasAuthority("ROLE_ADMIN");
+
+                    auth.requestMatchers("/api/v1/roles/admin/**").hasAuthority("ROLE_ADMIN");
+
+                    auth.requestMatchers("/api/v1/bookings/customer/**").hasAuthority("ROLE_CUSTOMER");
+                    auth.requestMatchers("/api/v1/bookings/provider/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/bookings/status/**").hasAuthority("ROLE_VENDOR");
+
+                    auth.requestMatchers("/api/v1/reviews/customer/**").hasAuthority("ROLE_CUSTOMER");
+
+                    auth.requestMatchers("/api/v1/services/create/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/services/update/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/services/delete/**").hasAuthority("ROLE_VENDOR");
+
+                    auth.requestMatchers("/api/v1/service-history/customer/**").hasAuthority("ROLE_CUSTOMER");
+                    auth.requestMatchers("/api/v1/service-history/provider/**").hasAuthority("ROLE_VENDOR");
+
+                    auth.requestMatchers("/api/v1/service-providers/create/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/service-providers/update/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/service-providers/delete/**").hasAuthority("ROLE_VENDOR");
+
+
+
+
+
+
+
+
+
+
+
+
 //                    auth.requestMatchers("/error").permitAll();
 
                     auth.anyRequest().authenticated();

@@ -24,7 +24,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerDTO);
     }
 
-    @GetMapping
+    @GetMapping("/admin")
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
         List<Customer> customers = customerService.getAllCustomers();
         List<CustomerDTO> customerDTOs = customers.stream().map(customer -> {

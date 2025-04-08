@@ -15,13 +15,13 @@ import java.util.List;
 public class ServiceController {
     private final ServiceService serviceService;
 
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<ServiceResponse> createService(@RequestBody ServiceRequest serviceRequest) {
         ServiceResponse serviceResponse = serviceService.createService(serviceRequest);
         return ResponseEntity.ok(serviceResponse);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<ServiceResponse> updateService(@PathVariable int id, @RequestBody ServiceRequest serviceRequest) {
         ServiceResponse serviceResponse = serviceService.updateService(id, serviceRequest);
         return ResponseEntity.ok(serviceResponse);
@@ -39,7 +39,7 @@ public class ServiceController {
         return ResponseEntity.ok(services);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteService(@PathVariable int id) {
         serviceService.deleteService(id);
         return ResponseEntity.noContent().build();
