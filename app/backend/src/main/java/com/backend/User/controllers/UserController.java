@@ -11,21 +11,21 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/users")
 public class UserController {
 
     @Autowired
     private UserService userService;
 
     // Create a new user
-    @PostMapping("/admin")
+    @PostMapping
     public ResponseEntity<User> createUser(@RequestBody UserDTO userDTO) {
         User user = userService.createUser(userDTO);
         return ResponseEntity.ok(user);
     }
 
     // Get all users
-    @GetMapping("/admin")
+    @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
@@ -39,14 +39,14 @@ public class UserController {
     }
 
     // Update a user
-    @PutMapping("/admin/{userID}")
+    @PutMapping("/{userID}")
     public ResponseEntity<User> updateUser(@PathVariable int userID, @RequestBody UserDTO userDTO) {
         User updatedUser = userService.updateUser(userID, userDTO);
         return ResponseEntity.ok(updatedUser);
     }
 
     //Delete a user
-    @DeleteMapping("/admin/{userID}")
+    @DeleteMapping("/{userID}")
     public ResponseEntity<Void> deleteUser(@PathVariable int userID) {
         userService.deleteUser(userID);
         return ResponseEntity.noContent().build();

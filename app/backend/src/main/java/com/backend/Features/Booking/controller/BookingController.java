@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/bookings")
+@RequestMapping("/api/v1/bookings")
 @RequiredArgsConstructor
 public class BookingController {
     private final BookingService bookingService;
@@ -22,20 +22,20 @@ public class BookingController {
         return ResponseEntity.ok(bookingResponse);
     }
 
-    @GetMapping("/customer")
-    public ResponseEntity<List<BookingResponse>> getBookingsByCustomer(@RequestParam int customerID) {
+    @GetMapping("/customer/{customerID}")
+    public ResponseEntity<List<BookingResponse>> getBookingsByCustomer(@PathVariable int customerID) {
         List<BookingResponse> bookings = bookingService.getBookingsByCustomer(customerID);
         return ResponseEntity.ok(bookings);
     }
 
-    @GetMapping("/provider")
-    public ResponseEntity<List<BookingResponse>> getBookingsByProvider(@RequestParam int providerID) {
+    @GetMapping("/provider/{providerID}")
+    public ResponseEntity<List<BookingResponse>> getBookingsByProvider(@PathVariable int providerID) {
         List<BookingResponse> bookings = bookingService.getBookingsByProvider(providerID);
         return ResponseEntity.ok(bookings);
     }
 
-    @PutMapping("/{id}/status")
-    public ResponseEntity<BookingResponse> updateBookingStatus(@PathVariable int id, @RequestParam BookingStatus status) {
+    @PutMapping("/status/{id}")
+    public ResponseEntity<BookingResponse> updateBookingStatus(@RequestParam BookingStatus status, @PathVariable int id) {
         BookingResponse bookingResponse = bookingService.updateBookingStatus(id, status);
         return ResponseEntity.ok(bookingResponse);
     }

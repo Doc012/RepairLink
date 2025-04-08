@@ -7,6 +7,10 @@ CREATE TABLE roles (
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 INSERT INTO roles (roleType, description) VALUES ('USER', 'Default customer role');
+INSERT INTO roles (roleType, description) VALUES ('CUSTOMER', 'Default customer role');
+INSERT INTO roles (roleType, description) VALUES ('VENDOR', 'Default customer role');
+INSERT INTO roles (roleType, description) VALUES ('ADMIN', 'Default customer role');
+
 
 
 -- USERS Table
@@ -28,7 +32,6 @@ CREATE TABLE users (
     FOREIGN KEY (roleID) REFERENCES roles(roleID)
 );
 
-INSERT INTO roles (roleType, description) VALUES ('CUSTOMER', 'Default customer role');
 
 -- CUSTOMERS Table
 CREATE TABLE customers (

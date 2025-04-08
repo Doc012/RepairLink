@@ -4,11 +4,11 @@ import com.backend.Features.Customer.entity.Customer;
 import com.backend.Features.Customer.repository.CustomerRepository;
 import com.backend.Security.dtos.LoginRequest;
 import com.backend.Security.dtos.RegisterRequest;
-
 import com.backend.Security.errors.UserAlreadyExistsException;
 import com.backend.Security.errors.UserNotVerifiedException;
-import com.backend.User.entities.RoleType;
+import com.backend.User.entities.Role;
 import com.backend.User.entities.User;
+import com.backend.User.enums.RoleType;
 import com.backend.User.repositories.RoleRepository;
 import com.backend.User.repositories.UserRepository;
 import jakarta.transaction.Transactional;
@@ -24,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -37,13 +39,13 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final JwtServiceImpl jwtService;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final CustomerRepository customerRepository;
 
 
-    @Value("${app.verification.token.expiration-minutes:5}")
+    @Value("${app.verification.token.expiration-minutes:10080}")
     private long verificationTokenExpirationMinutes;
 
     @Value("${app.verification.max-attempts:3}")
@@ -52,7 +54,6 @@ public class AuthService {
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
-    // Enhanced registration with more robust checks and async email sending
     public CompletableFuture<Void> register(RegisterRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             validateRegistrationRequest(request);
@@ -64,7 +65,7 @@ public class AuthService {
 
             User newUser = createNewUser(request);
 
-            if (request.getRoleType().equals("CUSTOMER")) {
+            if (request.getRoleType().equals(RoleType.CUSTOMER)) {
                 createCustomer(newUser);
             }
 
@@ -83,6 +84,7 @@ public class AuthService {
         customer.setUser(user);
         customerRepository.save(customer);
     }
+
 
     // Validate registration request
     private void validateRegistrationRequest(RegisterRequest request) {
@@ -127,7 +129,7 @@ public class AuthService {
 
     // Create new user
     private User createNewUser(RegisterRequest request) {
-        RoleType roleType = roleRepository.findByRoleType(com.backend.User.enums.RoleType.valueOf(request.getRoleType()))
+        Role roleType = roleRepository.findByRoleType(request.getRoleType())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         User user = new User();

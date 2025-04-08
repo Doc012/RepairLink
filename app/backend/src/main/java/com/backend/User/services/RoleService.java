@@ -1,7 +1,7 @@
 package com.backend.User.services;
 
 import com.backend.User.dtos.RoleDTO;
-import com.backend.User.entities.RoleType;
+import com.backend.User.entities.Role;
 import com.backend.User.repositories.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,12 +16,12 @@ public class RoleService {
     private RoleRepository roleRepository;
 
     // Create a new role
-    public RoleType createRole(RoleDTO roleDTO) {
+    public Role createRole(RoleDTO roleDTO) {
         if (roleRepository.existsByRoleType(roleDTO.getRoleType())) {
             throw new RuntimeException("Role with type '" + roleDTO.getRoleType() + "' already exists.");
         }
 
-        RoleType role = new RoleType();
+        Role role = new Role();
         role.setRoleType(roleDTO.getRoleType());
         role.setDescription(roleDTO.getDescription());
 
@@ -29,25 +29,25 @@ public class RoleService {
     }
 
     // Get all roles
-    public List<RoleType> getAllRoles() {
+    public List<Role> getAllRoles() {
         return roleRepository.findAll();
     }
 
     // Get a role by ID
-    public Optional<RoleType> getRoleByID(int roleID) {
+    public Optional<Role> getRoleByID(int roleID) {
         return roleRepository.findById(roleID);
     }
 
     // Get a role by type
-    public Optional<RoleType> getRoleByType(com.backend.User.enums.RoleType roleType) {
+    public Optional<Role> getRoleByType(com.backend.User.enums.RoleType roleType) {
         return roleRepository.findByRoleType(roleType);
     }
 
     // Update a role
-    public RoleType updateRole(int roleID, RoleDTO roleDTO) {
-        Optional<RoleType> existingRole = roleRepository.findById(roleID);
+    public Role updateRole(int roleID, RoleDTO roleDTO) {
+        Optional<Role> existingRole = roleRepository.findById(roleID);
         if (existingRole.isPresent()) {
-            RoleType role = existingRole.get();
+            Role role = existingRole.get();
             role.setRoleType(roleDTO.getRoleType());
             role.setDescription(roleDTO.getDescription());
 

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/reviews")
+@RequestMapping("/api/v1/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
     private final ReviewService reviewService;
@@ -33,8 +33,8 @@ public class ReviewController {
         return ResponseEntity.ok(reviews);
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<List<ReviewResponse>> getMyReviews(@RequestParam int customerID) {
+    @GetMapping("/me/{customerID}")
+    public ResponseEntity<List<ReviewResponse>> getMyReviews(@PathVariable int customerID) {
         List<ReviewResponse> reviews = reviewService.getMyReviews(customerID);
         return ResponseEntity.ok(reviews);
     }

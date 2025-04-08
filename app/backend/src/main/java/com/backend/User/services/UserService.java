@@ -1,7 +1,7 @@
 package com.backend.User.services;
 
 import com.backend.User.dtos.UserDTO;
-import com.backend.User.entities.RoleType;
+import com.backend.User.entities.Role;
 import com.backend.User.entities.User;
 import com.backend.User.repositories.RoleRepository;
 import com.backend.User.repositories.UserRepository;
@@ -26,7 +26,7 @@ public class UserService {
             throw new RuntimeException("A user with the email '" + userDTO.getEmail() + "' already exists.");
         }
 
-        Optional<RoleType> role = roleRepository.findByRoleType(userDTO.getRoleType());
+        Optional<Role> role = roleRepository.findByRoleType(userDTO.getRoleType());
         if (role.isEmpty()){
             throw new RuntimeException("Role not found for type '" + userDTO.getRoleType());
         }
@@ -66,7 +66,7 @@ public class UserService {
         user.setEmail(userDTO.getEmail());
         user.setPicUrl(userDTO.getPicUrl());
 
-        Optional<RoleType> role = roleRepository.findByRoleType(userDTO.getRoleType());
+        Optional<Role> role = roleRepository.findByRoleType(userDTO.getRoleType());
         if (role.isEmpty()) {
             throw new RuntimeException("Role not found for type: '" + userDTO.getRoleType() + "'");
         }

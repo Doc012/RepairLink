@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "roles") // Match the table name in the database
-public class RoleType {
+public class Role {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,10 +38,10 @@ public class RoleType {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public RoleType() {
+    public Role() {
     }
 
-    public RoleType(int roleID, com.backend.User.enums.RoleType roleType, String description, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Role(int roleID, com.backend.User.enums.RoleType roleType, String description, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.roleID = roleID;
         this.roleType = roleType;
         this.description = description;

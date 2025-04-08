@@ -6,6 +6,8 @@ import com.backend.User.entities.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CustomerService {
@@ -21,5 +23,9 @@ public class CustomerService {
     public Customer getCustomerById(int id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
+    }
+
+    public List<Customer> getAllCustomers() {
+        return customerRepository.findAll();
     }
 }

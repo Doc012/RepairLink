@@ -4,6 +4,7 @@ package com.backend.Features.Service.service;
 import com.backend.Features.Service.dto.ServiceRequest;
 import com.backend.Features.Service.dto.ServiceResponse;
 import com.backend.Features.Service.entity.ServiceClass;
+import com.backend.Features.Service.exception.UnverifiedProviderException;
 import com.backend.Features.Service.repository.ServiceRepository;
 import com.backend.Features.ServiceProvider.entity.ServiceProvider;
 import com.backend.Features.ServiceProvider.repository.ServiceProviderRepository;
@@ -25,7 +26,7 @@ public class ServiceService {
                 .orElseThrow(() -> new RuntimeException("ServiceProvider not found"));
 
         if (!provider.isVerified()) {
-            throw new RuntimeException("ServiceProvider is not verified");
+            throw new UnverifiedProviderException("The service provider is not verified and cannot create services.");
         }
 
         ServiceClass serviceClass = new ServiceClass();
