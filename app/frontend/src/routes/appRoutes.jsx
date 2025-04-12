@@ -10,6 +10,7 @@ import Register from '../pages/auth/Register';
 import ServiceDetail from '../components/public/services/ServiceDetail';
 import ProviderDetail from '../components/public/services/ProviderDetail';
 import BookingForm from '../components/public/services/BookingForm';
+import ForgotPassword from '../pages/auth/ForgotPassword';
 
 const router = createBrowserRouter([
   {
@@ -55,6 +56,10 @@ const router = createBrowserRouter([
       {
         path: 'book/provider/:providerId',
         element: <BookingForm />,
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPassword />,
       },
     ],
   },
