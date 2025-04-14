@@ -8,8 +8,6 @@ import Professionals from '../pages/public/Professionals';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ServiceDetail from '../components/public/services/ServiceDetail';
-import ProviderDetail from '../components/public/services/ProviderDetail';
-import BookingForm from '../components/public/services/BookingForm';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import CustomerLayout from '../layouts/customer/CustomerLayout';
 import CustomerDashboard from '../pages/customer/Dashboard';
@@ -20,12 +18,12 @@ import CustomerServices from '../pages/customer/Services';
 import CustomerProviders from '../pages/customer/Providers';
 import VendorLayout from '../layouts/vendor/VendorLayout';
 import VendorDashboard from '../pages/vendor/Dashboard';
-import VendorAppointments from '../pages/vendor/Appointments';
 import VendorServices from '../pages/vendor/Services';
 import VendorBusiness from '../pages/vendor/Business';
 import VendorOrders from '../pages/vendor/Orders';
 import VendorProfile from '../pages/vendor/Profile';
 import VendorStatistics from '../pages/vendor/Statistics';
+import ProviderProfile from '../components/public/providers/ProviderProfile';
 
 const router = createBrowserRouter([
   {
@@ -41,12 +39,16 @@ const router = createBrowserRouter([
         element: <Services />,
       },
       {
-        path: 'services/:serviceSlug',
+        path: 'services/:serviceId',
         element: <ServiceDetail />,
       },
       {
         path: 'professionals',
         element: <Professionals />,
+      },
+      {
+        path: 'provider/:slug',
+        element: <ProviderProfile />,
       },
       {
         path: 'about',
@@ -63,14 +65,6 @@ const router = createBrowserRouter([
       {
         path: 'register',
         element: <Register />,
-      },
-      {
-        path: 'providers/:providerId',
-        element: <ProviderDetail />,
-      },
-      {
-        path: 'book/provider/:providerId',
-        element: <BookingForm />,
       },
       {
         path: 'forgot-password',
@@ -115,10 +109,6 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <VendorDashboard />,
-      },
-      {
-        path: 'appointments',
-        element: <VendorAppointments />,
       },
       {
         path: 'services',

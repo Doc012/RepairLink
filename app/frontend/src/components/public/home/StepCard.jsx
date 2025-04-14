@@ -39,17 +39,23 @@ const ServiceCard = ({ service }) => {
 
 const StepCard = ({ step, title, description }) => {
   return (
-    <div className="relative flex flex-col items-center p-6 text-center">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-        <CheckCircleIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-        <span className="absolute -top-4 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-medium text-white">
+    <div className="relative">
+      <div className="relative z-10 rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-xl font-bold text-white dark:bg-blue-500">
           {step}
-        </span>
+        </div>
+        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          {title}
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-slate-400">
+          {description}
+        </p>
       </div>
-      <h3 className="mb-2 text-xl font-semibold text-gray-900 dark:text-slate-100">
-        {title}
-      </h3>
-      <p className="text-gray-600 dark:text-slate-400">{description}</p>
+      
+      {/* Connector line for larger screens */}
+      <div className="absolute top-1/2 left-full hidden w-full -translate-y-1/2 transform lg:block">
+        <div className="h-0.5 w-full bg-blue-200 dark:bg-blue-800" />
+      </div>
     </div>
   );
 };

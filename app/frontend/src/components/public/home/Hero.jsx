@@ -73,7 +73,11 @@ const Hero = () => {
                         <Button to="/register" variant="primary">
                           Get Started
                         </Button>
-                        <Button to="/about" variant="secondary" className="text-white hover:bg-slate-800">
+                        <Button 
+                          to="/about" 
+                          variant="secondary" 
+                          className="text-white hover:bg-white/10 backdrop-blur-sm transition-all"
+                        >
                           Learn More
                         </Button>
                       </div>

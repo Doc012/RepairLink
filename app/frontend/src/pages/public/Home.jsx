@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Hero from '@/components/public/home/Hero';
 import Button from '../../components/common/Button';
 import ServiceCard from '../../components/public/home/ServiceCard';
@@ -7,7 +9,50 @@ import ProfessionalCard from '../../components/public/home/ProfessionalCard';
 import TestimonialCard from '../../components/public/home/TestimonialCard';
 
 const Home = () => {
-  const services = ['Plumbing', 'Electrical', 'HVAC', 'Appliance', 'Carpentry', 'General Handyman'];
+  const services = [
+    {
+      id: 1,
+      name: 'Plumbing',
+      description: 'Expert plumbing services for your home and business',
+      icon: '🔧',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20'
+    },
+    {
+      id: 2,
+      name: 'Electrical',
+      description: 'Professional electrical installations and repairs',
+      icon: '⚡',
+      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20'
+    },
+    {
+      id: 3,
+      name: 'HVAC',
+      description: 'Heating, ventilation, and air conditioning services',
+      icon: '❄️',
+      bgColor: 'bg-green-50 dark:bg-green-900/20'
+    },
+    {
+      id: 4,
+      name: 'Appliance',
+      description: 'Repairs and maintenance for all home appliances',
+      icon: '🏠',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20'
+    },
+    {
+      id: 5,
+      name: 'Carpentry',
+      description: 'Custom woodwork and furniture repairs',
+      icon: '🔨',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/20'
+    },
+    {
+      id: 6,
+      name: 'General Handyman',
+      description: 'Various home repair and maintenance services',
+      icon: '🛠️',
+      bgColor: 'bg-red-50 dark:bg-red-900/20'
+    }
+  ];
 
   const steps = [
     {
@@ -119,137 +164,274 @@ const Home = () => {
     }
   ];
 
+  // Add scroll animation control
+  const [isVisible, setIsVisible] = useState({
+    services: false,
+    steps: false,
+    features: false,
+    professionals: false,
+    testimonials: false
+  });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['services', 'steps', 'features', 'professionals', 'testimonials'];
+      sections.forEach(section => {
+        const element = document.getElementById(section);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= window.innerHeight * 0.75) {
+            setIsVisible(prev => ({ ...prev, [section]: true }));
+          }
+        }
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4 }
+    }
+  };
+
   return (
     <div className="relative overflow-hidden">
       <Hero />
 
       {/* Services preview */}
-      <section className="bg-gray-50 py-16 sm:py-24 dark:bg-slate-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
+      <section id="services" className="bg-gray-50 py-16 sm:py-24 dark:bg-slate-900">
+        <motion.div 
+          className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+          initial="hidden"
+          animate={isVisible.services ? "visible" : "hidden"}
+          variants={containerVariants}
+        >
+          <motion.div 
+            className="mx-auto max-w-2xl text-center"
+            variants={itemVariants}
+          >
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               Popular Services
             </h2>
             <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-slate-400">
               We connect you with professionals across various repair categories
             </p>
-          </div>
+          </motion.div>
           
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div 
+            className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+            variants={containerVariants}
+          >
             {services.map((service) => (
-              <ServiceCard key={service} service={service} />
+              <motion.div key={service.id} variants={itemVariants}>
+                <ServiceCard service={service} />
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* How It Works */}
-      <section className="bg-white py-16 sm:py-24 dark:bg-slate-800">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
+      {/* How It Works - with timeline connector */}
+      <section id="steps" className="bg-white py-16 sm:py-24 dark:bg-slate-800 relative">
+        <motion.div 
+          className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+          initial="hidden"
+          animate={isVisible.steps ? "visible" : "hidden"}
+          variants={containerVariants}
+        >
+          {/* Add connecting line between steps */}
+          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-blue-200 dark:bg-blue-800 hidden lg:block" />
+          
+          {/* Rest of steps section */}
+          <motion.div variants={itemVariants} className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               How RepairLink Works
             </h2>
             <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-slate-400">
               Get your repairs done in four simple steps
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step) => (
-              <StepCard key={step.step} {...step} />
+          <motion.div 
+            className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 relative z-10"
+            variants={containerVariants}
+          >
+            {steps.map((step, index) => (
+              <motion.div key={step.step} variants={itemVariants}>
+                <StepCard {...step} isLast={index === steps.length - 1} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          <div className="mt-12 text-center">
-            <Button to="/register" variant="primary">
+          <motion.div 
+            className="mt-12 text-center"
+            variants={itemVariants}
+          >
+            <Button 
+              to="/register" 
+              variant="primary"
+              className="transform transition-transform hover:scale-105"
+            >
               Get Started Now
             </Button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Why Choose Us */}
-      <section className="bg-gray-50 py-16 sm:py-24 dark:bg-slate-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
+      <section id="features" className="bg-gray-50 py-16 sm:py-24 dark:bg-slate-900">
+        <motion.div 
+          className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+          initial="hidden"
+          animate={isVisible.features ? "visible" : "hidden"}
+          variants={containerVariants}
+        >
+          <motion.div 
+            className="mx-auto max-w-2xl text-center"
+            variants={itemVariants}
+          >
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               Why Choose RepairLink?
             </h2>
             <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-slate-400">
               We make finding and booking reliable repair services simple and secure
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <motion.div 
+            className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4"
+            variants={containerVariants}
+          >
             {features.map((feature) => (
-              <FeatureCard key={feature.title} {...feature} />
+              <motion.div key={feature.title} variants={itemVariants}>
+                <FeatureCard {...feature} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          <div className="mt-16 grid grid-cols-2 gap-8 sm:grid-cols-4">
+          <motion.div 
+            className="mt-16 grid grid-cols-2 gap-8 sm:grid-cols-4"
+            variants={containerVariants}
+          >
             {stats.map(({ value, label }) => (
-              <div key={label} className="text-center">
+              <motion.div key={label} className="text-center" variants={itemVariants}>
                 <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">{value}</div>
                 <div className="mt-2 text-slate-600 dark:text-slate-400">{label}</div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Featured Professionals */}
-      <section className="bg-white py-16 sm:py-24 dark:bg-slate-800">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
+      <section id="professionals" className="bg-white py-16 sm:py-24 dark:bg-slate-800">
+        <motion.div 
+          className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+          initial="hidden"
+          animate={isVisible.professionals ? "visible" : "hidden"}
+          variants={containerVariants}
+        >
+          <motion.div 
+            className="mx-auto max-w-2xl text-center"
+            variants={itemVariants}
+          >
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               Featured Professionals
             </h2>
             <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-slate-400">
               Meet our top-rated service providers ready to help you
             </p>
-          </div>
+          </motion.div>
           
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div 
+            className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+            variants={containerVariants}
+          >
             {professionals.map((professional) => (
-              <ProfessionalCard 
-                key={professional.name} 
-                professional={professional} 
-              />
+              <motion.div key={professional.name} variants={itemVariants}>
+                <ProfessionalCard professional={professional} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          <div className="mt-12 text-center">
+          <motion.div 
+            className="mt-12 text-center"
+            variants={itemVariants}
+          >
             <Button to="/professionals" variant="primary">
               View All Professionals
             </Button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Testimonials Section */}
-      <section className="bg-gray-50 py-16 sm:py-24 dark:bg-slate-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
+      <section id="testimonials" className="bg-gray-50 py-16 sm:py-24 dark:bg-slate-900">
+        <motion.div 
+          className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+          initial="hidden"
+          animate={isVisible.testimonials ? "visible" : "hidden"}
+          variants={containerVariants}
+        >
+          <motion.div 
+            className="mx-auto max-w-2xl text-center"
+            variants={itemVariants}
+          >
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               What Our Clients Say
             </h2>
             <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-slate-400">
               Read testimonials from satisfied customers across South Africa
             </p>
-          </div>
+          </motion.div>
           
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div 
+            className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+            variants={containerVariants}
+          >
             {testimonials.map((testimonial) => (
-              <TestimonialCard 
-                key={`${testimonial.name}-${testimonial.date}`} 
-                testimonial={testimonial} 
-              />
+              <motion.div key={`${testimonial.name}-${testimonial.date}`} variants={itemVariants}>
+                <TestimonialCard testimonial={testimonial} />
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
+      {/* Add floating CTA button */}
+      {/* <motion.div
+        className="fixed bottom-8 right-8 z-50"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 1 }}
+      >
+        <Button
+          to="/register"
+          variant="primary"
+          className="shadow-lg hover:shadow-xl transform transition-all hover:scale-105"
+        >
+          Book a Service
+        </Button>
+      </motion.div> */}
     </div>
   );
 };
