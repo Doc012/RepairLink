@@ -17,6 +17,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { ThemeProvider } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/auth/AuthContext';
 
 // Tooltip component for collapsed state
 const Tooltip = ({ children, text }) => (
@@ -44,6 +45,8 @@ const VendorLayout = () => {
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   const location = useLocation();
   const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout } = useAuth();
 
   // Mock vendor data (replace with actual data from your auth system)
   const [vendor] = useState({
@@ -66,8 +69,17 @@ const VendorLayout = () => {
     }
   };
 
-  const handleLogout = () => {
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      navigate('/login');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (

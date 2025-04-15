@@ -15,6 +15,7 @@ import {
   SunIcon,
   MoonIcon
 } from '@heroicons/react/24/outline';
+import { useAuth } from '../../contexts/auth/AuthContext'; // Import useAuth
 
 // Add tooltip component for collapsed state
 const Tooltip = ({ children, text }) => (
@@ -39,8 +40,10 @@ const CustomerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // Add state for logout in progress
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout, user: authUser } = useAuth(); // Get logout function and user from auth context
 
   const toggleTheme = () => {
     const root = document.documentElement;
@@ -55,15 +58,30 @@ const CustomerLayout = () => {
     }
   };
 
-  // Add mock user data (replace with actual user data later)
+  // Add mock user data (replace with auth user data if available)
   const [user] = useState({
-    name: "John",
-    surname: "Doe",
-    picUrl: "/src/assets/images/hero/repair-3.jpg" // Replace with actual user profile pic
+    name: authUser?.name || "John",
+    surname: authUser?.surname || "Doe",
+    picUrl: authUser?.picUrl || "/src/assets/images/hero/repair-3.jpg"
   });
 
-  const handleLogout = () => {
-    navigate('/login');
+  // Update the handleLogout function to call the API
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true); // Set loading state
+      
+      // Call the logout function from AuthContext
+      await logout();
+      
+      // Navigate to login page after successful logout
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still navigate to login even if logout API fails
+      navigate('/login');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -144,13 +162,17 @@ const CustomerLayout = () => {
           ))}
         </nav>
 
-        {/* Logout button */}
+        {/* Updated Logout button */}
         <div className="border-t border-gray-200 p-4 dark:border-slate-700">
           {isDesktopCollapsed ? (
             <Tooltip text="Logout">
               <button
                 onClick={handleLogout}
-                className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 hover:text-red-600 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                disabled={isLoggingOut}
+                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors 
+                  ${isLoggingOut 
+                    ? 'cursor-not-allowed opacity-50' 
+                    : 'hover:bg-gray-100 hover:text-red-600 dark:hover:bg-slate-700 dark:hover:text-red-400'}`}
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
               </button>
@@ -158,10 +180,14 @@ const CustomerLayout = () => {
           ) : (
             <button
               onClick={handleLogout}
-              className="flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-red-400"
+              disabled={isLoggingOut}
+              className={`flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors 
+                ${isLoggingOut 
+                  ? 'cursor-not-allowed opacity-50' 
+                  : 'hover:bg-gray-100 hover:text-red-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-red-400'}`}
             >
               <ArrowRightOnRectangleIcon className="h-5 w-5" />
-              <span className="ml-3">Logout</span>
+              <span className="ml-3">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
             </button>
           )}
         </div>

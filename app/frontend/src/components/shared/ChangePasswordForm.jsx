@@ -1,170 +1,318 @@
 import { useState } from 'react';
-import { 
-  EyeIcon,
-  EyeSlashIcon
-} from '@heroicons/react/24/outline';
+import { KeyIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { motion } from 'framer-motion';
+import axios from 'axios';
 
 const ChangePasswordForm = () => {
-  const [passwords, setPasswords] = useState({
+  const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
+  
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Password strength indicator state
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+    strength: 'weak'
   });
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear errors when user types
+    if (error) setError('');
+    if (success) setSuccess(false);
+    
+    // Check password strength if newPassword field changes
+    if (name === 'newPassword') {
+      checkPasswordStrength(value);
+    }
+  };
+  
+  const checkPasswordStrength = (password) => {
+    const strength = {
+      length: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      strength: 'weak'
+    };
+    
+    // Calculate password strength
+    const checks = [strength.length, strength.hasUpperCase, strength.hasLowerCase, strength.hasNumber];
+    const passedChecks = checks.filter(Boolean).length;
+    
+    if (passedChecks === 4) {
+      strength.strength = 'strong';
+    } else if (passedChecks >= 2) {
+      strength.strength = 'medium';
+    } else {
+      strength.strength = 'weak';
+    }
+    
+    setPasswordStrength(strength);
+  };
+  
+  // Get strength color for the progress bar
+  const getStrengthColor = () => {
+    switch (passwordStrength.strength) {
+      case 'strong':
+        return 'bg-green-500 dark:bg-green-500';
+      case 'medium':
+        return 'bg-yellow-500 dark:bg-yellow-500';
+      default:
+        return 'bg-red-500 dark:bg-red-500';
+    }
+  };
+
+  const validateForm = () => {
+    if (!formData.currentPassword) {
+      setError('Current password is required');
+      return false;
+    }
+    
+    if (!formData.newPassword) {
+      setError('New password is required');
+      return false;
+    }
+    
+    if (formData.newPassword.length < 8) {
+      setError('New password must be at least 8 characters long');
+      return false;
+    }
+    
+    if (!passwordStrength.hasUpperCase || !passwordStrength.hasLowerCase || !passwordStrength.hasNumber) {
+      setError('Password must include uppercase, lowercase letters and numbers');
+      return false;
+    }
+    
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError('New passwords do not match');
+      return false;
+    }
+    
+    if (formData.currentPassword === formData.newPassword) {
+      setError('New password must be different from current password');
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsLoading(true);
     setError('');
-    setSuccess('');
-
-    // Basic validation
-    if (!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword) {
-      setError('All fields are required');
-      return;
-    }
-
-    if (passwords.newPassword !== passwords.confirmPassword) {
-      setError('New passwords do not match');
-      return;
-    }
-
-    if (passwords.newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-
+    
     try {
-      // Add your API call here
-      // const response = await api.post('/auth/change-password', passwords);
-      setSuccess('Password successfully updated');
-      setPasswords({
+      const response = await axios.post(
+        'http://localhost:8080/api/auth/change-password',
+        {
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword
+        },
+        {
+          withCredentials: true
+        }
+      );
+      
+      console.log('Password change response:', response.data);
+      setSuccess(true);
+      
+      // Reset form data
+      setFormData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update password');
+      
+      // Reset password strength
+      setPasswordStrength({
+        length: false,
+        hasUpperCase: false,
+        hasLowerCase: false,
+        hasNumber: false,
+        strength: 'weak'
+      });
+      
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      
+      // Handle error response from API
+      if (error.response?.data) {
+        const errorMessage = error.response.data;
+        if (typeof errorMessage === 'string') {
+          if (errorMessage.includes('Current password is incorrect')) {
+            setError('Your current password is incorrect');
+          } else {
+            setError(errorMessage.replace('Error changing password: ', ''));
+          }
+        } else {
+          setError('Failed to change password. Please try again.');
+        }
+      } else {
+        setError('Network error. Please check your connection and try again.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className="mt-4 space-y-4 border-t border-gray-200 pt-4 dark:border-slate-700">
       {success && (
-        <div className="rounded-lg bg-green-50 p-4 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
-          {success}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/10 dark:text-green-400"
+        >
+          <div className="flex items-center">
+            <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+            Password changed successfully!
+          </div>
+        </motion.div>
       )}
-
+      
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/10 dark:text-red-400"
+        >
+          <div className="flex items-center">
+            <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+            {error}
+          </div>
+        </motion.div>
+      )}
+      
       <div>
-        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
           Current Password
         </label>
-        <div className="relative mt-1">
+        <div className="mt-1">
           <input
-            type={showPasswords.current ? 'text' : 'password'}
-            value={passwords.currentPassword}
-            onChange={(e) => setPasswords(prev => ({
-              ...prev,
-              currentPassword: e.target.value
-            }))}
-            className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 pr-10 text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={formData.currentPassword}
+            onChange={handleChange}
+            className="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-500"
+            placeholder="••••••••"
+            disabled={isLoading}
           />
-          <button
-            type="button"
-            onClick={() => togglePasswordVisibility('current')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300"
-          >
-            {showPasswords.current ? (
-              <EyeSlashIcon className="h-5 w-5" />
-            ) : (
-              <EyeIcon className="h-5 w-5" />
-            )}
-          </button>
         </div>
       </div>
-
+      
       <div>
-        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
           New Password
         </label>
-        <div className="relative mt-1">
+        <div className="mt-1">
           <input
-            type={showPasswords.new ? 'text' : 'password'}
-            value={passwords.newPassword}
-            onChange={(e) => setPasswords(prev => ({
-              ...prev,
-              newPassword: e.target.value
-            }))}
-            className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 pr-10 text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            id="newPassword"
+            name="newPassword"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={formData.newPassword}
+            onChange={handleChange}
+            className="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-500"
+            placeholder="••••••••"
+            disabled={isLoading}
           />
-          <button
-            type="button"
-            onClick={() => togglePasswordVisibility('new')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300"
-          >
-            {showPasswords.new ? (
-              <EyeSlashIcon className="h-5 w-5" />
-            ) : (
-              <EyeIcon className="h-5 w-5" />
-            )}
-          </button>
         </div>
       </div>
-
+      
+      {/* Password strength indicator */}
+      {formData.newPassword && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              Password strength: 
+              <span className={`ml-1 font-semibold ${
+                passwordStrength.strength === 'strong' ? 'text-green-600 dark:text-green-400' : 
+                passwordStrength.strength === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 
+                'text-red-600 dark:text-red-400'
+              }`}>
+                {passwordStrength.strength.charAt(0).toUpperCase() + passwordStrength.strength.slice(1)}
+              </span>
+            </span>
+          </div>
+          <div className="h-1 w-full rounded-full bg-slate-200 dark:bg-slate-700">
+            <div 
+              className={`h-1 rounded-full transition-all duration-300 ${getStrengthColor()}`} 
+              style={{ 
+                width: passwordStrength.strength === 'strong' ? '100%' : 
+                      passwordStrength.strength === 'medium' ? '66%' : '33%' 
+              }}
+            />
+          </div>
+          <ul className="grid gap-1 text-xs text-slate-600 dark:text-slate-400">
+            <li className={`flex items-center ${passwordStrength.length ? 'text-green-600 dark:text-green-400' : ''}`}>
+              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.length ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+              At least 8 characters
+            </li>
+            <li className={`flex items-center ${passwordStrength.hasUpperCase ? 'text-green-600 dark:text-green-400' : ''}`}>
+              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasUpperCase ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+              At least one uppercase letter
+            </li>
+            <li className={`flex items-center ${passwordStrength.hasLowerCase ? 'text-green-600 dark:text-green-400' : ''}`}>
+              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasLowerCase ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+              At least one lowercase letter
+            </li>
+            <li className={`flex items-center ${passwordStrength.hasNumber ? 'text-green-600 dark:text-green-400' : ''}`}>
+              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasNumber ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+              At least one number
+            </li>
+          </ul>
+        </div>
+      )}
+      
       <div>
-        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
           Confirm New Password
         </label>
-        <div className="relative mt-1">
+        <div className="mt-1">
           <input
-            type={showPasswords.confirm ? 'text' : 'password'}
-            value={passwords.confirmPassword}
-            onChange={(e) => setPasswords(prev => ({
-              ...prev,
-              confirmPassword: e.target.value
-            }))}
-            className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 pr-10 text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-500"
+            placeholder="••••••••"
+            disabled={isLoading}
           />
-          <button
-            type="button"
-            onClick={() => togglePasswordVisibility('confirm')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300"
-          >
-            {showPasswords.confirm ? (
-              <EyeSlashIcon className="h-5 w-5" />
-            ) : (
-              <EyeIcon className="h-5 w-5" />
-            )}
-          </button>
         </div>
       </div>
-
-      <button
-        type="submit"
-        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-      >
-        Update Password
-      </button>
+      
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="inline-flex justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800"
+        >
+          {isLoading ? 'Updating...' : 'Update Password'}
+        </button>
+      </div>
     </form>
   );
 };

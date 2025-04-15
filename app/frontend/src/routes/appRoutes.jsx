@@ -9,6 +9,7 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ServiceDetail from '../components/public/services/ServiceDetail';
 import ForgotPassword from '../pages/auth/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword';
 import CustomerLayout from '../layouts/customer/CustomerLayout';
 import CustomerDashboard from '../pages/customer/Dashboard';
 import CustomerBookings from '../pages/customer/Bookings';
@@ -24,6 +25,7 @@ import VendorOrders from '../pages/vendor/Orders';
 import VendorProfile from '../pages/vendor/Profile';
 import VendorStatistics from '../pages/vendor/Statistics';
 import ProviderProfile from '../components/public/providers/ProviderProfile';
+import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 const router = createBrowserRouter([
   {
@@ -70,65 +72,85 @@ const router = createBrowserRouter([
         path: 'forgot-password',
         element: <ForgotPassword />,
       },
+      {
+        path: 'reset-password',
+        element: <ResetPassword />,
+      },
+      {
+        path: 'reset-password/:token',
+        element: <ResetPassword />,
+      },
     ],
   },
   {
     path: '/customer',
-    element: <CustomerLayout />,
+    element: <ProtectedRoute requiredRole="ROLE_CUSTOMER" />,
     children: [
       {
-        index: true,
-        element: <CustomerDashboard />,
-      },
-      {
-        path: 'bookings',
-        element: <CustomerBookings />,
-      },
-      {
-        path: 'services',
-        element: <CustomerServices />,
-      },
-      {
-        path: 'providers',
-        element: <CustomerProviders />,
-      },
-      {
-        path: 'profile',
-        element: <CustomerProfile />,
-      },
-      {
-        path: 'reviews',
-        element: <CustomerReviews />,
+        path: '',
+        element: <CustomerLayout />,
+        children: [
+          {
+            index: true,
+            element: <CustomerDashboard />,
+          },
+          {
+            path: 'bookings',
+            element: <CustomerBookings />,
+          },
+          {
+            path: 'services',
+            element: <CustomerServices />,
+          },
+          {
+            path: 'providers',
+            element: <CustomerProviders />,
+          },
+          {
+            path: 'profile',
+            element: <CustomerProfile />,
+          },
+          {
+            path: 'reviews',
+            element: <CustomerReviews />,
+          },
+        ],
       },
     ],
   },
   {
     path: '/vendor',
-    element: <VendorLayout />,
+    element: <ProtectedRoute requiredRole="ROLE_VENDOR" />,
     children: [
       {
-        index: true,
-        element: <VendorDashboard />,
-      },
-      {
-        path: 'services',
-        element: <VendorServices />,
-      },
-      {
-        path: 'business',
-        element: <VendorBusiness />,
-      },
-      {
-        path: 'orders',
-        element: <VendorOrders />,
-      },
-      {
-        path: 'profile',
-        element: <VendorProfile />,
-      },
-      {
-        path: 'statistics',
-        element: <VendorStatistics />,
+        path: '',
+        element: <VendorLayout />,
+        children: [
+          {
+            index: true,
+            element: <VendorDashboard />,
+          },
+          {
+            path: 'services',
+            element: <VendorServices />,
+          },
+          {
+            path: 'business',
+            element: <VendorBusiness />,
+          },
+          {
+            path: 'orders',
+            element: <VendorOrders />,
+          },
+          {
+            path: 'profile',
+            element: <VendorProfile />,
+          },
+          {
+            path: 'statistics',
+            element: <VendorStatistics />,
+          },
+        ],
       },
     ],
   },

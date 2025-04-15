@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   UserIcon, 
   EnvelopeIcon, 
@@ -8,26 +8,40 @@ import {
   BuildingOfficeIcon,
   UserGroupIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../../layouts/auth/AuthLayout';
 import FormInput from '../../components/auth/FormInput';
 import Button from '../../components/common/Button';
+import axios from 'axios';
 
 const Register = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     surname: '',
     phoneNumber: '',
     email: '',
     password: '',
-    confirmPassword: '', // Add this field
-    role: 'CUSTOMER'
+    confirmPassword: '',
+    role: '' // No default role - user must select
   });
-  const [passwordError, setPasswordError] = useState(''); // Add password validation error state
+  const [passwordError, setPasswordError] = useState('');
+  const [apiError, setApiError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Password strength indicator state
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+    strength: 'weak'
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -36,6 +50,53 @@ const Register = () => {
     // Clear password error when either password field changes
     if (name === 'password' || name === 'confirmPassword') {
       setPasswordError('');
+      
+      // Check password strength if password field changes
+      if (name === 'password') {
+        checkPasswordStrength(value);
+      }
+    }
+    
+    // Clear API error when any field changes
+    if (apiError) {
+      setApiError('');
+    }
+  };
+  
+  // Password strength checker function
+  const checkPasswordStrength = (password) => {
+    const strength = {
+      length: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      strength: 'weak'
+    };
+    
+    // Calculate password strength
+    const checks = [strength.length, strength.hasUpperCase, strength.hasLowerCase, strength.hasNumber];
+    const passedChecks = checks.filter(Boolean).length;
+    
+    if (passedChecks === 4) {
+      strength.strength = 'strong';
+    } else if (passedChecks >= 2) {
+      strength.strength = 'medium';
+    } else {
+      strength.strength = 'weak';
+    }
+    
+    setPasswordStrength(strength);
+  };
+  
+  // Get strength color for the progress bar
+  const getStrengthColor = () => {
+    switch (passwordStrength.strength) {
+      case 'strong':
+        return 'bg-green-500 dark:bg-green-500';
+      case 'medium':
+        return 'bg-yellow-500 dark:bg-yellow-500';
+      default:
+        return 'bg-red-500 dark:bg-red-500';
     }
   };
 
@@ -48,11 +109,33 @@ const Register = () => {
       setPasswordError('Password must be at least 8 characters long');
       return false;
     }
+    // Enhanced password validation
+    if (!passwordStrength.hasUpperCase || !passwordStrength.hasLowerCase || !passwordStrength.hasNumber) {
+      setPasswordError('Password must include uppercase, lowercase letters and numbers');
+      return false;
+    }
+    return true;
+  };
+  
+  const validateForm = () => {
+    // Step 1 validation already handled by validatePasswords
+    if (step === 2) {
+      if (!formData.phoneNumber) {
+        setApiError('Phone number is required');
+        return false;
+      }
+      
+      if (!formData.role) {
+        setApiError('Please select an account type');
+        return false;
+      }
+    }
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (step === 1) {
       if (!validatePasswords()) {
         return;
@@ -60,12 +143,47 @@ const Register = () => {
       setStep(2);
       return;
     }
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsLoading(true);
+    setApiError('');
+    
     try {
-      // TODO: Implement registration logic
-      console.log('Form submitted:', formData);
+      // Prepare registration data
+      const registrationData = {
+        name: formData.name,
+        surname: formData.surname,
+        email: formData.email,
+        password: formData.password,
+        phoneNumber: formData.phoneNumber,
+        roleType: formData.role // Map to roleType as expected by API
+      };
+      
+      // Send registration request
+      const response = await axios.post(
+        'http://localhost:8080/api/auth/register',
+        registrationData
+      );
+      
+      console.log('Registration successful:', response.data);
+      setSuccess(true);
+      
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (error) {
       console.error('Registration failed:', error);
+      
+      // Handle specific API errors
+      if (error.response?.data?.error) {
+        setApiError(error.response.data.error);
+      } else {
+        setApiError('Registration failed. Please try again later.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +228,28 @@ const Register = () => {
             />
           </div>
         </div>
+
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 rounded-lg bg-green-50 p-4 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400"
+          >
+            Registration successful! Please check your email for verification instructions.
+            Redirecting to login...
+          </motion.div>
+        )}
+
+        {apiError && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 flex items-center rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400"
+          >
+            <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+            {apiError}
+          </motion.div>
+        )}
 
         <form onSubmit={handleSubmit} className="pt-6">
           <AnimatePresence initial={false} custom={step}>
@@ -171,6 +311,51 @@ const Register = () => {
                   placeholder="••••••••"
                 />
 
+                {/* Password strength indicator */}
+                {formData.password && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        Password strength: 
+                        <span className={`ml-1 font-semibold ${
+                          passwordStrength.strength === 'strong' ? 'text-green-600 dark:text-green-400' : 
+                          passwordStrength.strength === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 
+                          'text-red-600 dark:text-red-400'
+                        }`}>
+                          {passwordStrength.strength.charAt(0).toUpperCase() + passwordStrength.strength.slice(1)}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-1 w-full rounded-full bg-slate-200 dark:bg-slate-700">
+                      <div 
+                        className={`h-1 rounded-full transition-all duration-300 ${getStrengthColor()}`} 
+                        style={{ 
+                          width: passwordStrength.strength === 'strong' ? '100%' : 
+                                passwordStrength.strength === 'medium' ? '66%' : '33%' 
+                        }}
+                      />
+                    </div>
+                    <ul className="grid gap-1 text-xs text-slate-600 dark:text-slate-400">
+                      <li className={`flex items-center ${passwordStrength.length ? 'text-green-600 dark:text-green-400' : ''}`}>
+                        <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.length ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+                        At least 8 characters
+                      </li>
+                      <li className={`flex items-center ${passwordStrength.hasUpperCase ? 'text-green-600 dark:text-green-400' : ''}`}>
+                        <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasUpperCase ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+                        At least one uppercase letter
+                      </li>
+                      <li className={`flex items-center ${passwordStrength.hasLowerCase ? 'text-green-600 dark:text-green-400' : ''}`}>
+                        <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasLowerCase ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+                        At least one lowercase letter
+                      </li>
+                      <li className={`flex items-center ${passwordStrength.hasNumber ? 'text-green-600 dark:text-green-400' : ''}`}>
+                        <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasNumber ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
+                        At least one number
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
                 <FormInput
                   icon={KeyIcon}
                   label="Confirm Password"
@@ -230,7 +415,7 @@ const Register = () => {
 
                 <div className="space-y-3">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Account Type
+                    Account Type <span className="text-red-500">*</span>
                   </label>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {[

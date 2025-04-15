@@ -1,22 +1,47 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { EnvelopeIcon, KeyIcon } from '@heroicons/react/24/outline';
+import { Link, useNavigate } from 'react-router-dom';
+import { EnvelopeIcon, KeyIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import AuthLayout from '../../layouts/auth/AuthLayout';
 import FormInput from '../../components/auth/FormInput';
 import Button from '../../components/common/Button';
+import { useAuth } from '../../contexts/auth/AuthContext';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
+    
     try {
-      // TODO: Implement login logic
-      console.log('Form submitted:', formData);
+      // Use the login function from auth context
+      const result = await login(formData.email, formData.password);
+
+      if (result.success) {
+        // Determine where to redirect based on user role
+        if (result.data.roles && result.data.roles.some(role => 
+            typeof role === 'string' ? role === 'ROLE_CUSTOMER' : role.authority === 'ROLE_CUSTOMER')) {
+          console.log('Redirecting to customer dashboard');
+          navigate('/customer');
+        } else if (result.data.roles && result.data.roles.some(role => 
+            typeof role === 'string' ? role === 'ROLE_VENDOR' : role.authority === 'ROLE_VENDOR')) {
+          console.log('Redirecting to vendor dashboard');
+          navigate('/vendor');
+        } else {
+          console.log('No specific role found or unrecognized format, redirecting to home');
+          navigate('/');
+        }
+      } else {
+        setError(result.message);
+      }
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login error:', error);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -34,6 +59,13 @@ const Login = () => {
         </>
       }
     >
+      {error && (
+        <div className="mb-4 flex items-center p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400">
+          <ExclamationCircleIcon className="flex-shrink-0 inline w-4 h-4 mr-2" />
+          <span>{error}</span>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <FormInput
           icon={EnvelopeIcon}
