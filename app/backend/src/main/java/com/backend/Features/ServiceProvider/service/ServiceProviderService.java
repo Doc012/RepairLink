@@ -58,4 +58,5 @@ public class ServiceProviderService {
     public List<ServiceProvider> getAllServiceProviders() {
         return serviceProviderRepository.findAll();
     }
+
 }
