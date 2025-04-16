@@ -8,9 +8,8 @@ import Professionals from '../pages/public/Professionals';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ServiceDetail from '../components/public/services/ServiceDetail';
-import ProviderDetail from '../components/public/services/ProviderDetail';
-import BookingForm from '../components/public/services/BookingForm';
 import ForgotPassword from '../pages/auth/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword';
 import CustomerLayout from '../layouts/customer/CustomerLayout';
 import CustomerDashboard from '../pages/customer/Dashboard';
 import CustomerBookings from '../pages/customer/Bookings';
@@ -20,17 +19,20 @@ import CustomerServices from '../pages/customer/Services';
 import CustomerProviders from '../pages/customer/Providers';
 import VendorLayout from '../layouts/vendor/VendorLayout';
 import VendorDashboard from '../pages/vendor/Dashboard';
-import VendorAppointments from '../pages/vendor/Appointments';
 import VendorServices from '../pages/vendor/Services';
 import VendorBusiness from '../pages/vendor/Business';
 import VendorOrders from '../pages/vendor/Orders';
 import VendorProfile from '../pages/vendor/Profile';
 import VendorStatistics from '../pages/vendor/Statistics';
+import ProviderProfile from '../components/public/providers/ProviderProfile';
+import ProtectedRoute from '../components/auth/ProtectedRoute';
+import ErrorPage from '../pages/errors/ErrorPage';
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <PublicLayout />,
+    errorElement: <ErrorPage />,
     children: [
       {
         index: true,
@@ -41,12 +43,16 @@ const router = createBrowserRouter([
         element: <Services />,
       },
       {
-        path: 'services/:serviceSlug',
+        path: 'services/:serviceId',
         element: <ServiceDetail />,
       },
       {
         path: 'professionals',
         element: <Professionals />,
+      },
+      {
+        path: 'provider/:slug',
+        element: <ProviderProfile />,
       },
       {
         path: 'about',
@@ -65,82 +71,99 @@ const router = createBrowserRouter([
         element: <Register />,
       },
       {
-        path: 'providers/:providerId',
-        element: <ProviderDetail />,
-      },
-      {
-        path: 'book/provider/:providerId',
-        element: <BookingForm />,
-      },
-      {
         path: 'forgot-password',
         element: <ForgotPassword />,
+      },
+      {
+        path: 'reset-password',
+        element: <ResetPassword />,
+      },
+      {
+        path: 'reset-password/:token',
+        element: <ResetPassword />,
       },
     ],
   },
   {
-    path: '/customer',
-    element: <CustomerLayout />,
+    path: '/user',
+    element: <ProtectedRoute requiredRole="ROLE_CUSTOMER" />,
+    errorElement: <ErrorPage />,
     children: [
       {
-        index: true,
-        element: <CustomerDashboard />,
-      },
-      {
-        path: 'bookings',
-        element: <CustomerBookings />,
-      },
-      {
-        path: 'services',
-        element: <CustomerServices />,
-      },
-      {
-        path: 'providers',
-        element: <CustomerProviders />,
-      },
-      {
-        path: 'profile',
-        element: <CustomerProfile />,
-      },
-      {
-        path: 'reviews',
-        element: <CustomerReviews />,
+        path: '',
+        element: <CustomerLayout />,
+        children: [
+          {
+            path: 'dashboard',
+            index: true,
+            element: <CustomerDashboard />,
+          },
+          {
+            path: 'bookings',
+            element: <CustomerBookings />,
+          },
+          {
+            path: 'services',
+            element: <CustomerServices />,
+          },
+          {
+            path: 'providers',
+            element: <CustomerProviders />,
+          },
+          {
+            path: 'profile',
+            element: <CustomerProfile />,
+          },
+          {
+            path: 'reviews',
+            element: <CustomerReviews />,
+          },
+        ],
       },
     ],
   },
   {
     path: '/vendor',
-    element: <VendorLayout />,
+    element: <ProtectedRoute requiredRole="ROLE_VENDOR" />,
+    errorElement: <ErrorPage />,
     children: [
       {
-        index: true,
-        element: <VendorDashboard />,
-      },
-      {
-        path: 'appointments',
-        element: <VendorAppointments />,
-      },
-      {
-        path: 'services',
-        element: <VendorServices />,
-      },
-      {
-        path: 'business',
-        element: <VendorBusiness />,
-      },
-      {
-        path: 'orders',
-        element: <VendorOrders />,
-      },
-      {
-        path: 'profile',
-        element: <VendorProfile />,
-      },
-      {
-        path: 'statistics',
-        element: <VendorStatistics />,
+        path: '',
+        element: <VendorLayout />,
+        children: [
+          {
+            path: 'dashboard',
+            index: true,
+            element: <VendorDashboard />,
+          },
+          {
+            path: 'services',
+            element: <VendorServices />,
+          },
+          {
+            path: 'business',
+            element: <VendorBusiness />,
+          },
+          {
+            path: 'orders',
+            element: <VendorOrders />,
+          },
+          {
+            path: 'profile',
+            element: <VendorProfile />,
+          },
+          {
+            path: 'statistics',
+            element: <VendorStatistics />,
+          },
+        ],
       },
     ],
+  },
+  // Catch-all route for any non-matching paths
+  {
+    path: '*',
+    element: <ErrorPage />,
   },
 ]);
 

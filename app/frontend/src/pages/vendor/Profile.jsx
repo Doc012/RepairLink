@@ -9,6 +9,7 @@ import {
   EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import ChangePasswordForm from '../../components/shared/ChangePasswordForm';
+import ThemeToggle from '../../components/ThemeToggle';
 
 const Profile = () => {
   const [profile, setProfile] = useState({
@@ -28,12 +29,14 @@ const Profile = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           My Profile
         </h1>
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-        >
-          {isEditing ? 'Save Changes' : 'Edit Profile'}
-        </button>
+        <div className="flex items-center space-x-4 mr-14">
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            {isEditing ? 'Save Changes' : 'Edit Profile'}
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

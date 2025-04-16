@@ -9,6 +9,7 @@ import {
   CheckBadgeIcon,
   CheckIcon,
   XMarkIcon,
+  PhoneIcon, // Add this import
 } from '@heroicons/react/24/outline';
 import { formatCurrency } from '../../utils/formatCurrency';
 
@@ -24,7 +25,8 @@ const Services = () => {
         businessName: "Smith's Auto Repair",
         serviceCategory: "Automotive",
         location: "Sandton, Johannesburg",
-        verified: true
+        verified: true,
+        phoneNumber: "011 234 5678" // Add phone number
       }
     },
     {
@@ -295,9 +297,15 @@ const Services = () => {
                   <CheckBadgeIcon className="h-5 w-5 text-blue-500" />
                 )}
               </div>
-              <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-slate-400">
-                <MapPinIcon className="mr-1.5 h-5 w-5" />
-                {service.provider.location}
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center text-sm text-gray-500 dark:text-slate-400">
+                  <MapPinIcon className="mr-1.5 h-5 w-5 flex-shrink-0" />
+                  {service.provider.location}
+                </div>
+                <div className="flex items-center text-sm text-gray-500 dark:text-slate-400">
+                  <PhoneIcon className="mr-1.5 h-5 w-5 flex-shrink-0" />
+                  {service.provider.phoneNumber}
+                </div>
               </div>
             </div>
 

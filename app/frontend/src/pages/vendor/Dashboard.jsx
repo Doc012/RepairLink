@@ -3,57 +3,88 @@ import {
   UserGroupIcon, 
   CurrencyDollarIcon,
   ClockIcon,
-  ChartBarIcon 
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
-    totalBookings: 0,
-    totalEarnings: 0,
-    pendingAppointments: 0,
-    monthlyGrowth: 0
+    todayBookings: 0,
+    pendingOrders: 0,
+    todayEarnings: 0,
+    nextAppointment: null
   });
 
-  // Mock data - replace with actual API calls
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [todaysSchedule, setTodaysSchedule] = useState([]);
+
   useEffect(() => {
+    // Mock data - replace with API calls
     setStats({
-      totalBookings: 156,
-      totalEarnings: 12580.00,  // Now in ZAR
-      pendingAppointments: 8,
-      monthlyGrowth: 23.5
+      todayBookings: 5,
+      pendingOrders: 3,
+      todayEarnings: 4580.00,
+      nextAppointment: {
+        time: '14:30',
+        customerName: 'John Doe',
+        service: 'Oil Change'
+      }
     });
+
+    setRecentOrders([
+      {
+        id: 1,
+        customerName: 'Jane Smith',
+        service: 'Full Service',
+        status: 'PENDING',
+        time: '1 hour ago'
+      },
+      // ... more orders
+    ]);
+
+    setTodaysSchedule([
+      {
+        time: '14:30',
+        customerName: 'John Doe',
+        service: 'Oil Change',
+        status: 'CONFIRMED'
+      },
+      // ... more appointments
+    ]);
   }, []);
 
   const cards = [
     {
-      title: 'Total Bookings',
-      value: stats.totalBookings,
-      icon: UserGroupIcon,
+      title: "Today's Bookings",
+      value: stats.todayBookings,
+      icon: ClipboardDocumentListIcon,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       darkBgColor: 'dark:bg-blue-900/20'
     },
     {
-      title: 'Total Earnings',
-      value: formatCurrency(stats.totalEarnings),
-      icon: CurrencyDollarIcon,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      darkBgColor: 'dark:bg-green-900/20'
-    },
-    {
-      title: 'Pending Appointments',
-      value: stats.pendingAppointments,
+      title: 'Pending Orders',
+      value: stats.pendingOrders,
       icon: ClockIcon,
       color: 'text-amber-600',
       bgColor: 'bg-amber-50',
       darkBgColor: 'dark:bg-amber-900/20'
     },
     {
-      title: 'Monthly Growth',
-      value: `${stats.monthlyGrowth}%`,
-      icon: ChartBarIcon,
+      title: "Today's Earnings",
+      value: formatCurrency(stats.todayEarnings),
+      icon: CurrencyDollarIcon,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
+      darkBgColor: 'dark:bg-green-900/20'
+    },
+    {
+      title: 'Next Appointment',
+      value: stats.nextAppointment ? `${stats.nextAppointment.time}` : 'None',
+      subtitle: stats.nextAppointment?.customerName,
+      icon: CalendarIcon,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       darkBgColor: 'dark:bg-purple-900/20'
@@ -83,6 +114,11 @@ const Dashboard = () => {
                 <p className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
                   {card.value}
                 </p>
+                {card.subtitle && (
+                  <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                    {card.subtitle}
+                  </p>
+                )}
               </div>
               <div className={`rounded-lg ${card.bgColor} ${card.darkBgColor} p-3`}>
                 <card.icon className={`h-6 w-6 ${card.color}`} />

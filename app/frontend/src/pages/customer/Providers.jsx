@@ -557,7 +557,7 @@ const CustomerProviders = () => {
         </h1>
         <button
           onClick={() => document.getElementById('filters').classList.toggle('hidden')}
-          className="mt-4 inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 sm:mt-0"
+          className="mt-4 inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 mr-14 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 sm:mt-0"
         >
           <AdjustmentsHorizontalIcon className="mr-2 h-5 w-5" />
           Filters

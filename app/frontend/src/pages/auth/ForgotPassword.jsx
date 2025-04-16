@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { EnvelopeIcon, ArrowLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon, ArrowLeftIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../../layouts/auth/AuthLayout';
 import FormInput from '../../components/auth/FormInput';
 import Button from '../../components/common/Button';
+import axios from 'axios';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -14,18 +15,47 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
 
     try {
-      // TODO: Implement password reset request logic
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      // Call the API to send password reset instructions
+      const response = await axios.post('http://localhost:8080/api/auth/forgot-password', { 
+        email: email 
+      });
+      
+      console.log('Password reset request sent:', response.data);
       setIsSubmitted(true);
     } catch (error) {
-      setError('Failed to send reset instructions. Please try again.');
+      console.error('Failed to send reset instructions:', error);
+      
+      // Handle different error scenarios
+      if (error.response?.status === 404) {
+        setError('No account found with this email address');
+      } else if (error.response?.data?.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('Failed to send reset instructions. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Handle resend functionality
+  const handleResend = () => {
+    // Reset submission state and resubmit the form
+    setIsSubmitted(false);
+    // Give a small delay before resubmitting to show the form transition
+    setTimeout(() => {
+      handleSubmit({ preventDefault: () => {} });
+    }, 300);
   };
 
   return (
@@ -62,17 +92,22 @@ const ForgotPassword = () => {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError(''); // Clear error when user types
+                }}
                 placeholder="john@example.com"
                 disabled={isLoading}
+                error={error ? true : false}
               />
 
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                  className="flex items-center rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400"
                 >
+                  <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
                   {error}
                 </motion.div>
               )}
@@ -128,7 +163,7 @@ const ForgotPassword = () => {
               </Button>
               <button
                 type="button"
-                onClick={handleSubmit}
+                onClick={handleResend}
                 className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
               >
                 Didn't receive the email? Click to resend

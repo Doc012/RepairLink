@@ -113,7 +113,7 @@ const Bookings = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-14">
       {/* Header with Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
