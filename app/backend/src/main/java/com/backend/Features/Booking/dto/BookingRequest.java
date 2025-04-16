@@ -9,6 +9,7 @@ public class BookingRequest {
     private int serviceID;
     private int providerID;
     private LocalDateTime bookingDate;
+    private String additionalNotes;
 
     public int getCustomerID() {
         return customerID;
@@ -40,5 +41,13 @@ public class BookingRequest {
 
     public void setBookingDate(LocalDateTime bookingDate) {
         this.bookingDate = bookingDate;
+    }
+
+    public String getAdditionalNotes() {
+        return additionalNotes;
+    }
+
+    public void setAdditionalNotes(String additionalNotes) {
+        this.additionalNotes = additionalNotes;
     }
 }

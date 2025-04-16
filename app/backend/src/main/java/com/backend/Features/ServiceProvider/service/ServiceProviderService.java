@@ -26,6 +26,8 @@ public class ServiceProviderService {
         serviceProvider.setBusinessName(serviceProviderDTO.getBusinessName());
         serviceProvider.setServiceCategory(serviceProviderDTO.getServiceCategory());
         serviceProvider.setLocation(serviceProviderDTO.getLocation());
+        serviceProvider.setAbout(serviceProviderDTO.getAbout());
+        serviceProvider.setPhoneNumber(serviceProviderDTO.getPhoneNumber());
         serviceProvider.setVerified(serviceProviderDTO.isVerified());
 
         return serviceProviderRepository.save(serviceProvider);
@@ -38,6 +40,8 @@ public class ServiceProviderService {
         serviceProvider.setBusinessName(serviceProviderDTO.getBusinessName());
         serviceProvider.setServiceCategory(serviceProviderDTO.getServiceCategory());
         serviceProvider.setLocation(serviceProviderDTO.getLocation());
+        serviceProvider.setAbout(serviceProviderDTO.getAbout());
+        serviceProvider.setPhoneNumber(serviceProviderDTO.getPhoneNumber());
         serviceProvider.setVerified(serviceProviderDTO.isVerified());
         return serviceProviderRepository.save(serviceProvider);
     }

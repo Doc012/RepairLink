@@ -4,8 +4,8 @@ import com.backend.Features.Customer.entity.Customer;
 import com.backend.Features.Customer.repository.CustomerRepository;
 import com.backend.Security.dtos.LoginRequest;
 import com.backend.Security.dtos.RegisterRequest;
-import com.backend.Security.errors.UserAlreadyExistsException;
-import com.backend.Security.errors.UserNotVerifiedException;
+import com.backend.Exceptions.security.UserAlreadyExistsException;
+import com.backend.Exceptions.security.UserNotVerifiedException;
 import com.backend.User.entities.Role;
 import com.backend.User.entities.User;
 import com.backend.User.enums.RoleType;
@@ -24,8 +24,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -43,7 +41,6 @@ public class AuthService {
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final CustomerRepository customerRepository;
-
 
     @Value("${app.verification.token.expiration-minutes:10080}")
     private long verificationTokenExpirationMinutes;
@@ -75,7 +72,11 @@ public class AuthService {
                 sendVerificationEmail(user);
             }
         }).exceptionally(ex -> {
-            throw new RuntimeException(ex);
+            Throwable cause = ex.getCause();
+            if (cause instanceof UserAlreadyExistsException) {
+                throw new UserAlreadyExistsException("An account with this email already exists. Please sign in or use another email address.");
+            }
+            throw new RuntimeException("An unexpected error occurred during registration.", ex);
         });
     }
 
@@ -85,34 +86,26 @@ public class AuthService {
         customerRepository.save(customer);
     }
 
-
-    // Validate registration request
     private void validateRegistrationRequest(RegisterRequest request) {
-        // Add more sophisticated validation
         if (request.getEmail() == null || !isValidEmail(request.getEmail())) {
             throw new IllegalArgumentException("Invalid email format");
         }
         if (request.getPassword() == null || request.getPassword().length() < 8) {
             throw new IllegalArgumentException("Password must be at least 8 characters long");
         }
-
     }
 
-    // Handle existing user logic
     private User handleExistingUser(User existingUser, RegisterRequest request) {
-        // If user is already verified
         if (existingUser.isEnabled()) {
-            throw new UserAlreadyExistsException("User already registered");
+            throw new UserAlreadyExistsException("An account with this email already exists. Please sign in or use another email address.");
         }
 
-        // Increment verification attempts
         int attempts = existingUser.getVerificationAttempts() + 1;
         if (attempts > maxVerificationAttempts) {
             userRepository.delete(existingUser);
             throw new RuntimeException("Maximum verification attempts exceeded. Please register again.");
         }
 
-        // Update user details and regenerate token
         existingUser.setName(request.getName());
         existingUser.setSurname(request.getSurname());
         existingUser.setPhoneNumber(request.getPhoneNumber());
@@ -127,7 +120,6 @@ public class AuthService {
         return userRepository.save(existingUser);
     }
 
-    // Create new user
     private User createNewUser(RegisterRequest request) {
         Role roleType = roleRepository.findByRoleType(request.getRoleType())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
@@ -150,26 +142,40 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    // Send verification email
-    private void sendVerificationEmail(User user) {
+    public void sendVerificationEmail(User user) {
         String verificationLink = baseUrl + "/api/auth/verify?token=" + user.getVerificationToken();
         emailService.sendVerificationEmail(user.getEmail(), verificationLink);
         log.info("Verification email sent to: {}", user.getEmail());
     }
 
-    // Verify email with enhanced error handling
+    public void resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.isEnabled()) {
+            throw new RuntimeException("User already verified");
+        }
+
+        // Generate new token
+        String token = generateVerificationToken();
+        user.setVerificationToken(token);
+        user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(verificationTokenExpirationMinutes));
+        userRepository.save(user);
+
+        // Send new verification email
+        sendVerificationEmail(user);
+        log.info("Verification email resent to: {}", user.getEmail());
+    }
+
     public void verifyEmail(String token) {
         User user = userRepository.findByVerificationToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid verification token"));
 
-        // Check token expiration
         if (LocalDateTime.now().isAfter(user.getVerificationTokenExpiry())) {
-            // Clear user data for expired token
             userRepository.delete(user);
             throw new RuntimeException("Verification token expired. Please register again.");
         }
 
-        // Mark user as verified
         user.setEnabled(true);
         user.setVerificationToken(null);
         user.setVerificationTokenExpiry(null);
@@ -179,19 +185,23 @@ public class AuthService {
         log.info("User email verified: {}", user.getEmail());
     }
 
-    // Login with enhanced authentication
     public String login(LoginRequest request) {
         try {
-            // Find user by email first
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-            // Check if user is not verified
             if (!user.isEnabled()) {
-                throw new UserNotVerifiedException("Your email is not verified. Please check your inbox.");
+                // Resend verification email before throwing exception
+                String token = generateVerificationToken();
+                user.setVerificationToken(token);
+                user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(verificationTokenExpirationMinutes));
+                userRepository.save(user);
+
+                sendVerificationEmail(user);
+
+                throw new UserNotVerifiedException("Your email is not verified. A new verification link has been sent to your email address.");
             }
 
-            // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
@@ -201,7 +211,6 @@ public class AuthService {
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-            // Generate JWT with additional claims if needed
             return jwtService.generateToken(userDetails);
 
         } catch (BadCredentialsException e) {
@@ -210,7 +219,6 @@ public class AuthService {
         }
     }
 
-    // Additional utility methods
     private boolean isValidEmail(String email) {
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
         return email.matches(emailRegex);

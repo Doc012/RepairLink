@@ -1,4 +1,4 @@
-package com.backend.Security.errors;
+package com.backend.Exceptions.security;
 
 public class ErrorResponse {
 

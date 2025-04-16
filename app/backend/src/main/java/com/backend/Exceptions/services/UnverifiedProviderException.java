@@ -1,4 +1,4 @@
-package com.backend.Features.Service.exception;
+package com.backend.Exceptions.services;
 
 public class UnverifiedProviderException extends RuntimeException {
     public UnverifiedProviderException(String message) {

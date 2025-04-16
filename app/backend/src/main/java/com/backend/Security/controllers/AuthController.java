@@ -1,7 +1,8 @@
-package com.backend.Security.controllers;// Keep only the imports you actually need
+package com.backend.Security.controllers;
 
+import com.backend.Exceptions.security.UserNotVerifiedException;
 import com.backend.Security.dtos.*;
-import com.backend.Security.errors.UserAlreadyExistsException;
+import com.backend.Exceptions.security.UserAlreadyExistsException;
 import com.backend.Security.services.AuthService;
 import com.backend.Security.services.JwtService;
 import com.backend.Security.services.PasswordService;
@@ -30,8 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -78,7 +81,7 @@ public class AuthController {
             if (e.getCause() instanceof UserAlreadyExistsException) {
                 return ResponseEntity
                         .status(HttpStatus.CONFLICT)
-                        .body(Map.of("error", "An account with this email already exists."));
+                        .body(Map.of("error", "An account with this email already exists. Please sign in or use another email address."));
             }
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -89,6 +92,7 @@ public class AuthController {
                     .body(Map.of("error", "Registration failed: " + e.getMessage()));
         }
     }
+
     @GetMapping("/verify")
     public void verifyEmail(@RequestParam String token, HttpServletResponse response) throws IOException {
         try {
@@ -101,11 +105,25 @@ public class AuthController {
         }
     }
 
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         try {
-            // First authenticate the user
+            // Check if user exists and is verified before attempting authentication
+            User user = authService.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            if (!user.isEnabled()) {
+                // Resend verification email
+                String token = UUID.randomUUID().toString();
+                user.setVerificationToken(token);
+                user.setVerificationTokenExpiry(LocalDateTime.now().plusMinutes(1440)); // 24 hours
+                authService.sendVerificationEmail(user);
+
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Your account email has not been verified yet. A new verification link has been sent to your email address.");
+            }
+
+            // Now attempt authentication
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
@@ -137,7 +155,11 @@ public class AuthController {
 
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("message", "Login successful");
+//            responseBody.put("userID", user.getUserID());
+            responseBody.put("name", user.getName());
+            responseBody.put("phoneNumber", user.getPhoneNumber());
             responseBody.put("email", userDetails.getUsername());
+            responseBody.put("surname", user.getSurname());
             responseBody.put("roles", userDetails.getAuthorities());
 
             return ResponseEntity.ok(responseBody);
@@ -146,47 +168,13 @@ public class AuthController {
                     .body("Invalid email or password");
         } catch (UsernameNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("User not found");
+                    .body("No account found with this email address. Please register first.");
         } catch (Exception e) {
+            log.error("Login error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred during login");
         }
-    }//            String jwt = authService.login(request);
-//
-//            // ✅ Store JWT in HttpOnly cookie
-//            Cookie cookie = new Cookie("jwt", jwt);
-//            cookie.setHttpOnly(true); // Prevent JavaScript access
-//            cookie.setSecure(true);   // Enable this in production (for HTTPS)
-//            cookie.setPath("/");      // Available to entire site
-//            cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days expiration
-//
-//            response.addCookie(cookie);
-//
-//            return ResponseEntity.ok("Login successful");
-//        } catch (UserNotVerifiedException e) {
-//            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Email not verified. Please check your inbox.");
-//        } catch (RuntimeException e) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-//        }
-//    }
-//    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-//        try {
-//            String jwt = authService.login(request);
-//            return ResponseEntity.ok(new JwtResponse(jwt));
-//        } catch (UserNotVerifiedException e) {
-//            log.warn("Login attempt for unverified user: {}", request.getEmail());
-//            return ResponseEntity
-//                    .status(HttpStatus.FORBIDDEN)
-//                    .body("Email not verified. Please check your inbox.");
-//        } catch (RuntimeException e) {
-//            log.warn("Login failed for email: {}", request.getEmail());
-//            return ResponseEntity
-//                    .status(HttpStatus.UNAUTHORIZED)
-//                    .body(e.getMessage());
-//        }
-//    }
-
-
+    }
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
         try {
@@ -219,12 +207,6 @@ public class AuthController {
             response.put("roles", userDetails.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList()));
-
-            // You might want to add additional user information here
-            // For example, if you have a User entity with more details:
-            // User user = userService.findByEmail(userDetails.getUsername());
-            // response.put("firstName", user.getFirstName());
-            // response.put("lastName", user.getLastName());
 
             return ResponseEntity.ok(response);
 
@@ -294,11 +276,6 @@ public class AuthController {
         }
     }
 
-
-
-
-
-
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
         try {
@@ -336,35 +313,6 @@ public class AuthController {
                     .body("Logout failed");
         }
     }
-//    public ResponseEntity<?> logout(HttpServletResponse response, @CookieValue("jwt") String jwt) {
-//        // Remove session from Redis
-//        redisTemplate.delete("session:" + jwt);
-//
-//        // Clear cookie
-//        Cookie cookie = new Cookie("jwt", null);
-//        cookie.setHttpOnly(true);
-//        cookie.setSecure(true);
-//        cookie.setPath("/");
-//        cookie.setMaxAge(0);
-//        response.addCookie(cookie);
-//
-//        return ResponseEntity.ok("Logged out");
-//    }
-//    public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
-//        try {
-//            if (token != null && token.startsWith("Bearer ")) {
-//                String jwt = token.substring(7);
-//                tokenBlacklistService.blacklistToken(jwt);
-//                return ResponseEntity.ok("Logged out successfully");
-//            }
-//            return ResponseEntity.badRequest().body("Invalid token");
-//        } catch (Exception e) {
-//            log.error("Logout error", e);
-//            return ResponseEntity
-//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body("Logout failed");
-//        }
-//    }
 
     @PostMapping("/forgot-password")
     @Transactional

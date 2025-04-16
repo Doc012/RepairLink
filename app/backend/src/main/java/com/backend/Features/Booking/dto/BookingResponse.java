@@ -9,6 +9,7 @@ public class BookingResponse {
     private int serviceID;
     private int providerID;
     private LocalDateTime bookingDate;
+    private String additionalNotes;
     private String status;
     private LocalDateTime createdAt;
 
@@ -50,6 +51,14 @@ public class BookingResponse {
 
     public void setBookingDate(LocalDateTime bookingDate) {
         this.bookingDate = bookingDate;
+    }
+
+    public String getAdditionalNotes() {
+        return additionalNotes;
+    }
+
+    public void setAdditionalNotes(String additionalNotes) {
+        this.additionalNotes = additionalNotes;
     }
 
     public String getStatus() {

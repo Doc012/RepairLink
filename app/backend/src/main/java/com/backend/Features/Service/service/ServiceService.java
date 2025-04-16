@@ -4,7 +4,7 @@ package com.backend.Features.Service.service;
 import com.backend.Features.Service.dto.ServiceRequest;
 import com.backend.Features.Service.dto.ServiceResponse;
 import com.backend.Features.Service.entity.ServiceClass;
-import com.backend.Features.Service.exception.UnverifiedProviderException;
+import com.backend.Exceptions.services.UnverifiedProviderException;
 import com.backend.Features.Service.repository.ServiceRepository;
 import com.backend.Features.ServiceProvider.entity.ServiceProvider;
 import com.backend.Features.ServiceProvider.repository.ServiceProviderRepository;

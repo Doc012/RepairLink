@@ -47,10 +47,15 @@ CREATE TABLE service_providers (
     businessName VARCHAR(255),
     serviceCategory VARCHAR(100),
     location VARCHAR(255),
+    about TEXT,
+    phoneNumber VARCHAR(15),
     verified BOOLEAN DEFAULT FALSE,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
+ALTER TABLE service_providers
+ADD COLUMN about TEXT,
+ADD COLUMN phoneNumber VARCHAR(15);
 
 -- SERVICES Table
 CREATE TABLE services (
@@ -71,13 +76,14 @@ CREATE TABLE bookings (
     serviceID INT,
     providerID INT,
     bookingDate TIMESTAMP,
-    status ENUM('PENDING', 'CONFIRMED', 'CANCELLED') DEFAULT 'PENDING',
+    additionalNotes TEXT,
+    status ENUM('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED') DEFAULT 'PENDING',
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customerID) REFERENCES customers(customerID) ON DELETE CASCADE,
     FOREIGN KEY (serviceID) REFERENCES services(serviceID) ON DELETE CASCADE,
     FOREIGN KEY (providerID) REFERENCES service_providers(providerID) ON DELETE CASCADE
 );
-ALTER TABLE bookings MODIFY status ENUM('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED') DEFAULT 'PENDING';
+
 
 
 -- REVIEWS Table

@@ -28,6 +28,7 @@ public class PasswordService {
         this.emailService = emailService;
     }
 
+    //
     public void processForgotPassword(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -46,6 +47,7 @@ public class PasswordService {
         emailService.sendPasswordResetEmail(email, token);
     }
 
+    // Method to validate the token
     public void resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = tokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid token"));
@@ -61,6 +63,7 @@ public class PasswordService {
         tokenRepository.delete(resetToken);
     }
 
+    // Method to change password
     public void changePassword(User user, String currentPassword, String newPassword) {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new RuntimeException("Current password is incorrect");
