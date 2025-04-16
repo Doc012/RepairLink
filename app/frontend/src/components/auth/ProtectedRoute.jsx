@@ -46,10 +46,10 @@ const ProtectedRoute = ({ requiredRole }) => {
       // Redirect based on their actual role
       if (user.roles.some(role => 
           typeof role === 'string' ? role === 'ROLE_CUSTOMER' : role.authority === 'ROLE_CUSTOMER')) {
-        return <Navigate to="/customer" replace />;
+        return <Navigate to="/dashboard" replace />;
       } else if (user.roles.some(role => 
           typeof role === 'string' ? role === 'ROLE_VENDOR' : role.authority === 'ROLE_VENDOR')) {
-        return <Navigate to="/vendor" replace />;
+        return <Navigate to="/dashboard" replace />;
       } else {
         return <Navigate to="/" replace />;
       }

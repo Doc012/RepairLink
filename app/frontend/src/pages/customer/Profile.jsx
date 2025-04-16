@@ -4,7 +4,8 @@ import {
   EnvelopeIcon,
   PhoneIcon,
   KeyIcon,
-  PhotoIcon
+  PhotoIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import ChangePasswordForm from '../../components/shared/ChangePasswordForm';
 import { useAuth } from '../../contexts/auth/AuthContext';
@@ -18,12 +19,12 @@ const CustomerProfile = () => {
     surname: '',
     email: '',
     phoneNumber: '',
+    roles: [],
     picUrl: "/src/assets/images/hero/repair-3.jpg"
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState(false);
@@ -34,27 +35,34 @@ const CustomerProfile = () => {
       try {
         setIsLoading(true);
         
+        console.log("Auth context user data:", user);
+        
         // Use user data from auth context if available
         if (user) {
+          console.log("Setting profile from auth context:", user);
           setProfile({
             name: user.name || '',
             surname: user.surname || '',
             email: user.email || '',
             phoneNumber: user.phoneNumber || '',
+            roles: user.roles || [],
             picUrl: user.picUrl || "/src/assets/images/hero/repair-3.jpg"
           });
         } else {
           // Fallback to API call if needed
+          console.log("Fetching profile from API");
           const response = await axios.get('http://localhost:8080/api/users/profile', {
             withCredentials: true
           });
           
+          console.log("API response:", response.data);
           const userData = response.data;
           setProfile({
             name: userData.name || '',
             surname: userData.surname || '',
             email: userData.email || '',
             phoneNumber: userData.phoneNumber || '',
+            roles: userData.roles || [],
             picUrl: userData.picUrl || "/src/assets/images/hero/repair-3.jpg"
           });
         }
@@ -67,6 +75,19 @@ const CustomerProfile = () => {
     
     fetchProfile();
   }, [user]);
+
+  // Gets the user's role in a user-friendly format
+  const getUserRole = () => {
+    if (!profile.roles || profile.roles.length === 0) return "User";
+    
+    const role = profile.roles[0].authority;
+    if (role === "ROLE_VENDOR") return "Service Provider";
+    if (role === "ROLE_CUSTOMER") return "Customer";
+    if (role === "ROLE_ADMIN") return "Administrator";
+    
+    // Remove ROLE_ prefix and capitalize
+    return role.replace("ROLE_", "").charAt(0).toUpperCase() + role.replace("ROLE_", "").slice(1).toLowerCase();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -126,7 +147,7 @@ const CustomerProfile = () => {
         ) : (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 mr-14 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
             Edit Profile
           </button>
@@ -177,9 +198,12 @@ const CustomerProfile = () => {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {`${profile.name} ${profile.surname}`}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-slate-400">
-                  Customer
-                </p>
+                <div className="flex items-center space-x-1">
+                  <ShieldCheckIcon className="h-4 w-4 text-blue-500" />
+                  <p className="text-sm text-gray-500 dark:text-slate-400">
+                    {getUserRole()}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -196,6 +220,7 @@ const CustomerProfile = () => {
                     value={profile.name}
                     onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                     className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
+                    placeholder="First Name"
                   />
                   <input
                     type="text"
@@ -203,6 +228,7 @@ const CustomerProfile = () => {
                     value={profile.surname}
                     onChange={(e) => setProfile({ ...profile, surname: e.target.value })}
                     className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
+                    placeholder="Last Name"
                   />
                 </div>
               </div>
@@ -221,6 +247,7 @@ const CustomerProfile = () => {
                     disabled={true} // Email should not be editable directly for security reasons
                     value={profile.email}
                     className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
+                    placeholder="email@example.com"
                   />
                 </div>
               </div>
@@ -239,7 +266,21 @@ const CustomerProfile = () => {
                     value={profile.phoneNumber}
                     onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
                     className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
+                    placeholder="Phone Number"
                   />
+                </div>
+              </div>
+
+              {/* User Role Information */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                  Account Type
+                </label>
+                <div className="mt-1">
+                  <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-slate-700 dark:bg-slate-900">
+                    <ShieldCheckIcon className="mr-2 h-5 w-5 text-blue-500" />
+                    <span className="text-gray-900 dark:text-white">{getUserRole()}</span>
+                  </div>
                 </div>
               </div>
             </div>

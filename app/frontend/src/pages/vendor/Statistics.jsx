@@ -135,7 +135,7 @@ const Statistics = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           Business Statistics
         </h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 mr-14">
           {/* Timeframe Dropdown */}
           <select 
             value={timeframe}
@@ -147,14 +147,6 @@ const Statistics = () => {
             <option value="90">Last 90 days</option>
             <option value="365">This year</option>
           </select>
-
-          {/* Add divider */}
-          <div className="h-6 w-px bg-gray-200 dark:bg-slate-700"></div>
-
-          {/* Theme Toggle */}
-          <div>
-            <ThemeToggle />
-          </div>
         </div>
       </div>
 

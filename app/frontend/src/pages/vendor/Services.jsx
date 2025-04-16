@@ -98,26 +98,19 @@ const Services = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           Services
         </h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 mr-5">
           <button
             onClick={() => {
               setEditingService(null);
               setIsModalOpen(true);
             }}
-            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 mr-10"
           >
             <PlusIcon className="mr-2 h-5 w-5" />
             Add Service
           </button>
           
-          {/* Add divider */}
-          <div className="h-6 w-px bg-gray-200 dark:bg-slate-700"></div>
-          
-          {/* Theme Toggle */}
-          <div>
-            <ThemeToggle />
           </div>
-        </div>
       </div>
 
       {/* Services Grid */}

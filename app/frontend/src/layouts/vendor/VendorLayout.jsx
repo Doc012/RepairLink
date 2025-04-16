@@ -31,7 +31,7 @@ const Tooltip = ({ children, text }) => (
 
 // Navigation items for service provider
 const navigation = [
-  { name: 'Dashboard', href: '/vendor', icon: HomeIcon },               // Overview - always first
+  { name: 'Dashboard', href: '/vendor/dashboard', icon: HomeIcon },               // Overview - always first
   { name: 'Orders', href: '/vendor/orders', icon: ClipboardDocumentListIcon },  // Daily operations
   { name: 'Services', href: '/vendor/services', icon: Cog8ToothIcon },  // Core business offering
   { name: 'Statistics', href: '/vendor/statistics', icon: ChartBarIcon },  // Business insights
@@ -199,7 +199,7 @@ const VendorLayout = () => {
         {/* Theme toggle button */}
         <button
           onClick={toggleTheme}
-          className={`fixed right-4 top-4 z-50 hidden rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition-all duration-300 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white lg:block`}
+          className={`fixed right-6 top-6 z-50 hidden rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition-all duration-300 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white lg:block`}
           title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {isDark ? (

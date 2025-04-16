@@ -26,11 +26,13 @@ import VendorProfile from '../pages/vendor/Profile';
 import VendorStatistics from '../pages/vendor/Statistics';
 import ProviderProfile from '../components/public/providers/ProviderProfile';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
+import ErrorPage from '../pages/errors/ErrorPage';
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <PublicLayout />,
+    errorElement: <ErrorPage />,
     children: [
       {
         index: true,
@@ -83,14 +85,16 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: '/customer',
+    path: '/user',
     element: <ProtectedRoute requiredRole="ROLE_CUSTOMER" />,
+    errorElement: <ErrorPage />,
     children: [
       {
         path: '',
         element: <CustomerLayout />,
         children: [
           {
+            path: 'dashboard',
             index: true,
             element: <CustomerDashboard />,
           },
@@ -121,12 +125,14 @@ const router = createBrowserRouter([
   {
     path: '/vendor',
     element: <ProtectedRoute requiredRole="ROLE_VENDOR" />,
+    errorElement: <ErrorPage />,
     children: [
       {
         path: '',
         element: <VendorLayout />,
         children: [
           {
+            path: 'dashboard',
             index: true,
             element: <VendorDashboard />,
           },
@@ -153,6 +159,11 @@ const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  // Catch-all route for any non-matching paths
+  {
+    path: '*',
+    element: <ErrorPage />,
   },
 ]);
 

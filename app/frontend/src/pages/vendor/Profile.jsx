@@ -29,21 +29,13 @@ const Profile = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           My Profile
         </h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 mr-14">
           <button
             onClick={() => setIsEditing(!isEditing)}
             className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
             {isEditing ? 'Save Changes' : 'Edit Profile'}
           </button>
-          
-          {/* Add divider */}
-          <div className="h-6 w-px bg-gray-200 dark:bg-slate-700"></div>
-          
-          {/* Theme Toggle */}
-          <div>
-            <ThemeToggle />
-          </div>
         </div>
       </div>
 

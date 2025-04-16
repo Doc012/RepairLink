@@ -111,7 +111,7 @@ const Dashboard = () => {
         </h1>
         <Link
           to="/customer/services"
-          className="mt-3 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 sm:mt-0"
+          className="mr-14 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 sm:mt-0"
         >
           Book New Service
           <ChevronRightIcon className="ml-1.5 h-4 w-4" />

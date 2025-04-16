@@ -147,7 +147,7 @@ const Orders = () => {
           {/* Calendar View Button */}
           <button 
             onClick={() => setViewMode(viewMode === 'table' ? 'calendar' : 'table')}
-            className="inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-slate-800 dark:text-white dark:ring-slate-700 dark:hover:bg-slate-700"
+            className="inline-flex items-center rounded-lg bg-white px-3 py-2 mr-10  text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-slate-800 dark:text-white dark:ring-slate-700 dark:hover:bg-slate-700"
           >
             {viewMode === 'table' ? (
               <>
@@ -165,8 +165,8 @@ const Orders = () => {
           {/* Divider */}
           <div className="h-6 w-px bg-gray-200 dark:bg-slate-700"></div>
           
-          {/* Theme Toggle */}
-          <ThemeToggle />
+          {/* Theme Toggle
+          <ThemeToggle /> */}
         </div>
       </div>
 

@@ -28,12 +28,12 @@ const Tooltip = ({ children, text }) => (
 );
 
 const navigation = [
-  { name: 'Dashboard', href: '/customer', icon: HomeIcon },
-  { name: 'My Bookings', href: '/customer/bookings', icon: CalendarIcon },
-  { name: 'Services', href: '/customer/services', icon: WrenchScrewdriverIcon },
-  { name: 'Service Providers', href: '/customer/providers', icon: BuildingStorefrontIcon },
-  { name: 'My Reviews', href: '/customer/reviews', icon: StarIcon },
-  { name: 'My Profile', href: '/customer/profile', icon: UserCircleIcon },
+  { name: 'Dashboard', href: '/user/dashboard', icon: HomeIcon },
+  { name: 'My Bookings', href: '/user/bookings', icon: CalendarIcon },
+  { name: 'Services', href: '/user/services', icon: WrenchScrewdriverIcon },
+  { name: 'Service Providers', href: '/user/providers', icon: BuildingStorefrontIcon },
+  { name: 'My Reviews', href: '/user/reviews', icon: StarIcon },
+  { name: 'My Profile', href: '/user/profile', icon: UserCircleIcon },
 ];
 
 const CustomerLayout = () => {
@@ -88,7 +88,7 @@ const CustomerLayout = () => {
     <div className="flex h-screen bg-gray-50 dark:bg-slate-900">
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col transform overflow-x-hidden border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-700 dark:bg-slate-800 
+        className={`fixed inset-y-0 left-0 z-50 -mr-10 flex flex-col transform overflow-x-hidden border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-700 dark:bg-slate-800 
           lg:static lg:transition-[width,transform]
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
           ${isDesktopCollapsed ? 'lg:w-16' : 'lg:w-52'} 
@@ -118,7 +118,7 @@ const CustomerLayout = () => {
                   {user.name} {user.surname}
                 </span>
                 <Link
-                  to="/customer/profile"
+                  to="/user/profile"
                   className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   View Profile
@@ -211,7 +211,7 @@ const CustomerLayout = () => {
       {/* Desktop theme toggle button */}
       <button
         onClick={toggleTheme}
-        className={`fixed right-4 top-4 z-50 hidden rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition-all duration-300 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white lg:block`}
+        className={`fixed right-10 top-6 z-50 hidden rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition-all duration-300 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white lg:block`}
         title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {isDark ? (

@@ -33,6 +33,9 @@ export const AuthProvider = ({ children }) => {
       
       setUser({
         email: response.data.email,
+        name: response.data.name,
+        surname: response.data.surname,
+        phoneNumber: response.data.phoneNumber,
         roles: response.data.roles.map(role => ({ authority: role }))
       });
       
@@ -66,6 +69,15 @@ export const AuthProvider = ({ children }) => {
       
       console.log('Login response:', response.data);
       
+      // Store user data directly from the login response
+      setUser({
+        email: response.data.email,
+        name: response.data.name,
+        surname: response.data.surname,
+        phoneNumber: response.data.phoneNumber,
+        roles: response.data.roles || []
+      });
+      
       // After successful login, check auth status to update context
       await checkAuthStatus();
       
@@ -75,9 +87,34 @@ export const AuthProvider = ({ children }) => {
       };
     } catch (error) {
       console.error('Login failed:', error.response?.status, error.response?.data);
+      
+      // Extract a user-friendly error message
+      let errorMessage;
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        if (error.response.status === 401) {
+          errorMessage = error.response.data || 'Invalid email or password';
+        } else if (error.response.status === 403) {
+          // Show the actual message from the backend for 403 errors
+          errorMessage = error.response.data || 'You do not have permission to access this resource';
+        } else if (error.response.status === 404) {
+          errorMessage = error.response.data || 'The requested resource could not be found';
+        } else {
+          errorMessage = error.response.data?.message || error.response.data || 'An error occurred during login';
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = 'No response from server. Please check your internet connection.';
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        errorMessage = 'Unable to send login request. Please try again later.';
+      }
+      
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed'
+        message: errorMessage
       };
     }
   };

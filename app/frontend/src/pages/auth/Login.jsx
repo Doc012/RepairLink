@@ -27,11 +27,11 @@ const Login = () => {
         if (result.data.roles && result.data.roles.some(role => 
             typeof role === 'string' ? role === 'ROLE_CUSTOMER' : role.authority === 'ROLE_CUSTOMER')) {
           console.log('Redirecting to customer dashboard');
-          navigate('/customer');
+          navigate('/user/dashboard');
         } else if (result.data.roles && result.data.roles.some(role => 
             typeof role === 'string' ? role === 'ROLE_VENDOR' : role.authority === 'ROLE_VENDOR')) {
           console.log('Redirecting to vendor dashboard');
-          navigate('/vendor');
+          navigate('/vendor/dashboard');
         } else {
           console.log('No specific role found or unrecognized format, redirecting to home');
           navigate('/');
