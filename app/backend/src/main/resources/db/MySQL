@@ -53,9 +53,6 @@ CREATE TABLE service_providers (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
-ALTER TABLE service_providers
-ADD COLUMN about TEXT,
-ADD COLUMN phoneNumber VARCHAR(15);
 
 -- SERVICES Table
 CREATE TABLE services (

@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import ChangePasswordForm from '../../components/shared/ChangePasswordForm';
 import { useAuth } from '../../contexts/auth/AuthContext';
-import axios from 'axios';
+import { customerAPI, userAPI } from '../../services'; // Import the API services instead of axios
 
 const CustomerProfile = () => {
   const { user } = useAuth(); // Get user from auth context
@@ -37,23 +37,12 @@ const CustomerProfile = () => {
         
         console.log("Auth context user data:", user);
         
-        // Use user data from auth context if available
-        if (user) {
-          console.log("Setting profile from auth context:", user);
-          setProfile({
-            name: user.name || '',
-            surname: user.surname || '',
-            email: user.email || '',
-            phoneNumber: user.phoneNumber || '',
-            roles: user.roles || [],
-            picUrl: user.picUrl || "/src/assets/images/hero/repair-3.jpg"
-          });
-        } else {
-          // Fallback to API call if needed
+        // Try to get profile from API first
+        try {
           console.log("Fetching profile from API");
-          const response = await axios.get('http://localhost:8080/api/users/profile', {
-            withCredentials: true
-          });
+          // Try customer API first, then fall back to generic user API if needed
+          const response = await customerAPI.getProfile()
+            .catch(() => userAPI.getProfile()); // Fallback to userAPI if customerAPI fails
           
           console.log("API response:", response.data);
           const userData = response.data;
@@ -65,6 +54,21 @@ const CustomerProfile = () => {
             roles: userData.roles || [],
             picUrl: userData.picUrl || "/src/assets/images/hero/repair-3.jpg"
           });
+        } catch (apiError) {
+          console.error("API call failed, using auth context data:", apiError);
+          
+          // Use user data from auth context if API fails
+          if (user) {
+            console.log("Setting profile from auth context:", user);
+            setProfile({
+              name: user.name || '',
+              surname: user.surname || '',
+              email: user.email || '',
+              phoneNumber: user.phoneNumber || '',
+              roles: user.roles || [],
+              picUrl: user.picUrl || "/src/assets/images/hero/repair-3.jpg"
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to fetch profile:', error);
@@ -76,17 +80,42 @@ const CustomerProfile = () => {
     fetchProfile();
   }, [user]);
 
-  // Gets the user's role in a user-friendly format
+  // Fix for the getUserRole function
   const getUserRole = () => {
+    // If no roles, return default
     if (!profile.roles || profile.roles.length === 0) return "User";
     
-    const role = profile.roles[0].authority;
-    if (role === "ROLE_VENDOR") return "Service Provider";
-    if (role === "ROLE_CUSTOMER") return "Customer";
-    if (role === "ROLE_ADMIN") return "Administrator";
+    // Get the first role (could be a string or an object)
+    const roleObj = profile.roles[0];
     
-    // Remove ROLE_ prefix and capitalize
-    return role.replace("ROLE_", "").charAt(0).toUpperCase() + role.replace("ROLE_", "").slice(1).toLowerCase();
+    // Handle different formats of role data
+    let roleValue;
+    
+    if (typeof roleObj === 'string') {
+      // If role is directly a string like "ROLE_CUSTOMER"
+      roleValue = roleObj;
+    } else if (roleObj && typeof roleObj === 'object') {
+      // If role is an object like { authority: "ROLE_CUSTOMER" } or similar
+      roleValue = roleObj.authority || roleObj.role || roleObj.name || Object.values(roleObj)[0];
+    } else {
+      // Fallback if we can't determine the role
+      return "User";
+    }
+    
+    // Now we can safely use roleValue
+    if (roleValue === "ROLE_VENDOR") return "Service Provider";
+    if (roleValue === "ROLE_CUSTOMER") return "Customer";
+    if (roleValue === "ROLE_ADMIN") return "Administrator";
+    
+    // Make sure roleValue is a string before using replace
+    if (typeof roleValue === 'string' && roleValue.includes("ROLE_")) {
+      // Remove ROLE_ prefix and capitalize
+      return roleValue.replace("ROLE_", "").charAt(0).toUpperCase() + 
+             roleValue.replace("ROLE_", "").slice(1).toLowerCase();
+    }
+    
+    // If we get here, just return the role value or a default
+    return roleValue || "User";
   };
 
   const handleSubmit = async (e) => {
@@ -96,16 +125,12 @@ const CustomerProfile = () => {
     setUpdateSuccess(false);
     
     try {
-      // Update profile API call
-      const response = await axios.put(
-        'http://localhost:8080/api/users/profile',
-        {
-          name: profile.name,
-          surname: profile.surname,
-          phoneNumber: profile.phoneNumber
-        },
-        { withCredentials: true }
-      );
+      // Use customerAPI to update profile
+      await customerAPI.updateProfile({
+        name: profile.name,
+        surname: profile.surname,
+        phoneNumber: profile.phoneNumber
+      });
       
       setIsEditing(false);
       setUpdateSuccess(true);
@@ -125,8 +150,21 @@ const CustomerProfile = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // TODO: Implement image upload
-      console.log('Uploading image:', file);
+      try {
+        // Use customerAPI to upload profile picture
+        const response = await customerAPI.uploadProfilePicture(file);
+        
+        // Update profile with new image URL
+        if (response.data && response.data.picUrl) {
+          setProfile(prev => ({
+            ...prev,
+            picUrl: response.data.picUrl
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to upload image:', error);
+        setUpdateError('Failed to upload image. Please try again.');
+      }
     }
   };
 

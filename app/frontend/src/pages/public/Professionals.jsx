@@ -8,190 +8,144 @@ import {
   CheckCircleIcon,
   BriefcaseIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ShieldCheckIcon,
+  UserIcon
 } from '@heroicons/react/20/solid';
 import { motion } from 'framer-motion';
-
-// Mock data for professionals
-const professionals = [
-  {
-    id: 1,
-    name: 'PlumbPro Solutions',
-    title: 'Professional Plumbing Services',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.9,
-    reviews: 127,
-    location: 'Sandton, Gauteng',
-    specialties: ['Emergency Repairs', 'Installation', 'Maintenance'],
-    available: true,
-    experience: '15+ years',
-    verification: 'Licensed & Insured',
-  },
-  {
-    id: 2,
-    name: 'ElectroTech Services',
-    title: 'Certified Electrical Contractors',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.8,
-    reviews: 95,
-    location: 'Rosebank, Johannesburg',
-    specialties: ['Electrical Installation', 'Solar Systems', 'Load Shedding Solutions'],
-    available: true,
-    experience: '12+ years',
-    verification: 'Licensed & Certified',
-  },
-  {
-    id: 3,
-    name: 'CoolAir HVAC Systems',
-    title: 'Air Conditioning Specialists',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.7,
-    reviews: 83,
-    location: 'Pretoria East',
-    specialties: ['AC Installation', 'Heating Systems', 'Ventilation'],
-    available: false,
-    experience: '10+ years',
-    verification: 'HVAC Certified',
-  },
-  {
-    id: 4,
-    name: 'SecureHome Solutions',
-    title: 'Security Systems Experts',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.9,
-    reviews: 156,
-    location: 'Centurion',
-    specialties: ['CCTV Installation', 'Access Control', 'Electric Fencing'],
-    available: true,
-    experience: '8+ years',
-    verification: 'PSIRA Registered',
-  },
-  {
-    id: 5,
-    name: 'MasterCraft Carpentry',
-    title: 'Custom Woodworking Services',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.8,
-    reviews: 72,
-    location: 'Midrand',
-    specialties: ['Custom Furniture', 'Kitchen Cabinets', 'Wood Repairs'],
-    available: true,
-    experience: '20+ years',
-    verification: 'Master Craftsman',
-  },
-  {
-    id: 6,
-    name: 'SolarTech Solutions',
-    title: 'Solar Power Specialists',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.9,
-    reviews: 142,
-    location: 'Fourways, Johannesburg',
-    specialties: ['Solar Installation', 'Battery Systems', 'Inverter Setup'],
-    available: true,
-    experience: '8+ years',
-    verification: 'Solar Certified',
-  },
-  {
-    id: 7,
-    name: 'SafeLock Security',
-    title: 'Professional Locksmith Services',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.7,
-    reviews: 98,
-    location: 'Bryanston, Johannesburg',
-    specialties: ['Lock Installation', 'Emergency Access', 'Security Systems'],
-    available: true,
-    experience: '10+ years',
-    verification: 'Licensed & Certified',
-  },
-  {
-    id: 8,
-    name: 'GreenScape Gardens',
-    title: 'Professional Landscaping',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.8,
-    reviews: 167,
-    location: 'Waterfall, Midrand',
-    specialties: ['Landscape Design', 'Irrigation', 'Garden Maintenance'],
-    available: true,
-    experience: '12+ years',
-    verification: 'Certified Landscaper',
-  },
-  {
-    id: 9,
-    name: 'SmartHome Automation',
-    title: 'Home Automation Experts',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.9,
-    reviews: 89,
-    location: 'Sandton, Gauteng',
-    specialties: ['Smart Lighting', 'Home Security', 'Climate Control'],
-    available: true,
-    experience: '7+ years',
-    verification: 'Smart Home Certified',
-  },
-  {
-    id: 10,
-    name: 'ProPaint Masters',
-    title: 'Professional Painting Services',
-    image: 'https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png',
-    rating: 4.6,
-    reviews: 134,
-    location: 'Morningside, Johannesburg',
-    specialties: ['Interior Painting', 'Exterior Painting', 'Waterproofing'],
-    available: false,
-    experience: '15+ years',
-    verification: 'Master Painter',
-  }
-];
+import { publicAPI } from '../../services';
 
 const Professionals = () => {
   // 1. State declarations
+  const [professionals, setProfessionals] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [categories, setCategories] = useState(['All']);
   const itemsPerPage = 6;
+  // Add this state for review loading
+  const [reviewsLoading, setReviewsLoading] = useState({});
 
-  // 2. Memoized filtered results
+  // 2. Fetch data from API
+  useEffect(() => {
+    const fetchProfessionals = async () => {
+      setIsLoading(true);
+      try {
+        const response = await publicAPI.getServiceProviders();
+        console.log('API Response:', response.data);
+        
+        // Set the providers first so the UI can render
+        setProfessionals(response.data);
+        
+        // Then fetch review data separately for each provider
+        response.data.forEach(async (provider) => {
+          try {
+            // Mark this provider's reviews as loading
+            setReviewsLoading(prev => ({...prev, [provider.providerID]: true}));
+            
+            // First try the summary endpoint
+            let reviewData = null;
+            
+            try {
+              const summaryResponse = await publicAPI.getProviderReviewSummary(provider.providerID);
+              reviewData = {
+                rating: summaryResponse.data.averageRating || 0,
+                reviewCount: summaryResponse.data.totalReviews || 0
+              };
+            } catch (summaryErr) {
+              console.warn(`Summary endpoint failed for provider ${provider.providerID}, trying direct reviews:`, summaryErr);
+              
+              // If summary fails, try getting the reviews directly and calculate manually
+              const reviewsResponse = await publicAPI.getProviderReviews(provider.providerID);
+              const reviews = reviewsResponse.data || [];
+              
+              if (reviews.length > 0) {
+                const totalReviews = reviews.length;
+                const ratingSum = reviews.reduce((sum, review) => sum + review.rating, 0);
+                const avgRating = ratingSum / totalReviews;
+                
+                reviewData = {
+                  rating: avgRating,
+                  reviewCount: totalReviews
+                };
+              }
+            }
+            
+            // Update just this provider with the review data if we got it
+            if (reviewData) {
+              setProfessionals(prevProviders => 
+                prevProviders.map(p => 
+                  p.providerID === provider.providerID ? 
+                    {...p, ...reviewData} : p
+                )
+              );
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch reviews for provider ${provider.providerID}:`, err);
+          } finally {
+            // Mark this provider's reviews as loaded regardless of success/failure
+            setReviewsLoading(prev => ({...prev, [provider.providerID]: false}));
+          }
+        });
+        
+        // Extract unique categories from service providers
+        if (response.data && response.data.length > 0) {
+          const uniqueCategories = ['All', ...new Set(
+            response.data.map(provider => provider.serviceCategory).filter(Boolean)
+          )];
+          setCategories(uniqueCategories);
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch service providers:', err);
+        setError('Unable to load professionals. Please try again later.');
+        setProfessionals([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfessionals();
+  }, []);
+
+  // 3. Memoized filtered results based on search and category filters
   const filteredResults = React.useMemo(() => {
-    return professionals.filter(professional => {
+    return professionals.filter(provider => {
       const searchTerms = searchQuery.toLowerCase().trim();
       
+      // Match against business name, user name, service category, or location
       const matchesSearch = !searchTerms || 
-        professional.name.toLowerCase().includes(searchTerms) ||
-        professional.title.toLowerCase().includes(searchTerms) ||
-        professional.specialties.some(specialty => 
-          specialty.toLowerCase().includes(searchTerms)
-        );
+        provider.businessName?.toLowerCase().includes(searchTerms) ||
+        `${provider.user?.name} ${provider.user?.surname}`.toLowerCase().includes(searchTerms) ||
+        provider.serviceCategory?.toLowerCase().includes(searchTerms) ||
+        provider.location?.toLowerCase().includes(searchTerms);
 
-      const matchesSpecialty = !selectedSpecialty || 
-        professional.specialties.some(specialty => 
-          specialty.toLowerCase().includes(selectedSpecialty.toLowerCase())
-        );
+      // Match against selected category/specialty
+      const matchesSpecialty = !selectedSpecialty || selectedSpecialty === 'All' || 
+        provider.serviceCategory?.toLowerCase().includes(selectedSpecialty.toLowerCase());
 
       return matchesSearch && matchesSpecialty;
     });
-  }, [searchQuery, selectedSpecialty]);
+  }, [professionals, searchQuery, selectedSpecialty]);
 
-  // 3. Pagination calculations
+  // 4. Pagination calculations
   const totalPages = Math.ceil(filteredResults.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProfessionals = filteredResults.slice(startIndex, endIndex);
 
-  // 4. Event handlers
+  // 5. Event handlers
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    setSelectedSpecialty(null);
     setCurrentPage(1);
   };
 
   const handleSpecialtyClick = (specialty) => {
     setSelectedSpecialty(specialty === 'All' ? null : specialty);
-    setSearchQuery('');
     setCurrentPage(1);
   };
 
@@ -206,7 +160,7 @@ const Professionals = () => {
     setCurrentPage(1);
   };
 
-  // 5. Page numbers generator
+  // 6. Page numbers generator for pagination
   const getPageNumbers = () => {
     const delta = 1;
     const range = [];
@@ -233,16 +187,7 @@ const Professionals = () => {
     return range;
   };
 
-  // 6. Loading effect
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedSpecialty]);
-
-  // Add animation variants
+  // Animation variants for smooth transitions
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -259,7 +204,21 @@ const Professionals = () => {
     }
   };
 
-  // Update the return JSX - replace the search input and filters section
+  // Helper function to get provider's full name
+  const getProviderName = (provider) => {
+    if (provider.businessName) return provider.businessName;
+    if (provider.user?.name && provider.user?.surname) {
+      return `${provider.user.name} ${provider.user.surname}`;
+    }
+    return "Service Provider";
+  };
+
+  // Helper function to get provider image or placeholder
+  const getProviderImage = (provider) => {
+    return provider.user?.picUrl || "https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png";
+  };
+
+  // Return JSX with updated components for the API data structure
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Hero Section */}
@@ -280,7 +239,7 @@ const Professionals = () => {
                 Connect with skilled and verified professionals ready to tackle your home service needs.
               </p>
 
-              {/* Updated Search Bar */}
+              {/* Search Bar */}
               <div className="relative mt-8">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                   <MagnifyingGlassIcon className="h-5 w-5 text-white/60" />
@@ -288,7 +247,7 @@ const Professionals = () => {
                 <input
                   type="search"
                   className="block w-full rounded-xl border-2 border-white/20 bg-white/10 py-4 pl-11 pr-4 text-white backdrop-blur-sm placeholder:text-white/60 focus:border-white/30 focus:outline-none"
-                  placeholder="Search professionals by name or specialty..."
+                  placeholder="Search professionals by name or service category..."
                   value={searchQuery}
                   onChange={handleSearch}
                 />
@@ -300,10 +259,10 @@ const Professionals = () => {
 
       {/* Main Content */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {/* Enhanced Results Summary */}
+        {/* Results Summary */}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Found {filteredResults.length} professionals
+            Found {filteredResults.length} service providers
             {searchQuery && ` matching "${searchQuery}"`}
             {selectedSpecialty && ` in ${selectedSpecialty}`}
           </p>
@@ -317,28 +276,45 @@ const Professionals = () => {
           )}
         </div>
 
-        {/* Enhanced Specialty Filters */}
+        {/* Category Filters - Now using dynamic categories from API */}
         <motion.div 
           className="mb-8 flex flex-wrap gap-2"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {['All', 'Plumbing', 'Electrical', 'HVAC', 'Carpentry', 'Security'].map((specialty) => (
+          {categories.map((category) => (
             <motion.button
-              key={specialty}
-              onClick={() => handleSpecialtyClick(specialty)}
+              key={category}
+              onClick={() => handleSpecialtyClick(category)}
               className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                (specialty === 'All' && !selectedSpecialty) || specialty === selectedSpecialty
+                (category === 'All' && !selectedSpecialty) || category === selectedSpecialty
                   ? 'bg-blue-600 text-white shadow-lg scale-105'
                   : 'bg-white text-slate-700 hover:bg-slate-50 hover:scale-105 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
               }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              {specialty}
+              {category}
             </motion.button>
           ))}
         </motion.div>
+
+        {/* Error Message */}
+        {error && !isLoading && (
+          <motion.div 
+            className="rounded-lg bg-red-50 p-4 text-center dark:bg-red-900/20"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 text-sm font-medium text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200"
+            >
+              Try again
+            </button>
+          </motion.div>
+        )}
 
         {/* Loading State */}
         {isLoading ? (
@@ -357,78 +333,126 @@ const Professionals = () => {
                 <div className="aspect-w-16 aspect-h-9 mb-4 rounded-lg bg-slate-200 dark:bg-slate-700" />
                 <div className="h-6 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
                 <div className="mt-2 h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
-                <div className="mt-4 flex gap-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-6 w-20 rounded-full bg-slate-200 dark:bg-slate-700" />
+                <div className="mt-3 h-4 w-full rounded bg-slate-200 dark:bg-slate-700" />
+                
+                {/* Add this new skeleton section for reviews */}
+                <div className="mt-3 flex items-center space-x-1">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-4 w-4 rounded bg-slate-200 dark:bg-slate-700" />
                   ))}
+                  <div className="ml-2 h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+                
+                <div className="mt-4 flex justify-between">
+                  <div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="h-5 w-1/4 rounded bg-slate-200 dark:bg-slate-700" />
                 </div>
               </motion.div>
             ))}
           </motion.div>
         ) : (
-          /* Enhanced Professionals Grid */
+          /* Professionals Grid - Updated for API data structure */
           <motion.div 
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
-            {currentProfessionals.map((professional) => (
+            {currentProfessionals.map((provider) => (
               <motion.div
-                key={professional.id}
+                key={provider.providerID}
                 variants={itemVariants}
                 className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-200 hover:border-blue-600 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500"
               >
+                {/* Provider Image */}
                 <div className="aspect-w-16 aspect-h-9 mb-4 overflow-hidden rounded-lg">
                   <img
-                    src={professional.image}
-                    alt={professional.name}
+                    src={getProviderImage(provider)}
+                    alt={provider.businessName || "Service Provider"}
                     className="h-full w-full object-cover transition group-hover:scale-105"
+                    onError={(e) => {
+                      e.target.onerror = null; 
+                      e.target.src = "https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png";
+                    }}
                   />
                 </div>
 
+                {/* Provider Name and Info */}
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-white">
-                      {professional.name}
+                      {getProviderName(provider)}
                     </h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {professional.title}
+                      {provider.serviceCategory || "Service Provider"}
                     </p>
                   </div>
-                  <div className="flex items-center">
-                    <StarIcon className="h-5 w-5 text-yellow-400" />
-                    <span className="ml-1 text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {professional.rating}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {professional.specialties.map((specialty) => (
-                    <span
-                      key={specialty}
-                      className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                    >
-                      {specialty}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-4 flex items-center justify-between">
-                  {professional.available ? (
-                    <span className="flex items-center text-sm text-green-600 dark:text-green-400">
-                      <CheckCircleIcon className="mr-1 h-4 w-4" />
-                      Available Now
-                    </span>
-                  ) : (
-                    <span className="flex items-center text-sm text-red-600 dark:text-red-400">
-                      <ClockIcon className="mr-1 h-4 w-4" />
-                      Unavailable
-                    </span>
+                  
+                  {/* Verification Badge */}
+                  {provider.verified && (
+                    <div className="flex items-center bg-blue-50 px-2 py-1 rounded-full dark:bg-blue-900/20">
+                      <ShieldCheckIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-1" />
+                      <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
+                        Verified
+                      </span>
+                    </div>
                   )}
+                </div>
+
+                {/* About */}
+                <p className="mt-3 text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                  {provider.about || "Professional service provider ready to assist with your needs."}
+                </p>
+
+                {/* Reviews Summary */}
+                <div className="mt-3 flex items-center">
+                  {reviewsLoading[provider.providerID] ? (
+                    <div className="flex items-center space-x-1 animate-pulse">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-4 w-4 rounded bg-slate-200 dark:bg-slate-700" />
+                      ))}
+                      <div className="ml-2 h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <StarIcon
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.floor(provider.rating || 0)
+                                ? 'text-yellow-400'
+                                : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
+                        {provider.rating ? (
+                          <>
+                            <span className="font-medium">{provider.rating.toFixed(1)}</span>
+                            <span className="mx-1">•</span>
+                            <span>{provider.reviewCount || 0} reviews</span>
+                          </>
+                        ) : (
+                          "No reviews yet"
+                        )}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {/* Provider Contact and Details */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
+                    <UserIcon className="mr-1 h-4 w-4" />
+                    {provider.user?.name} {provider.user?.surname}
+                  </div>
+                  
+                  {/* View Profile Link */}
                   <Link
-                    to={`/provider/${professional.name.toLowerCase().replace(/\s+/g, '-')}-${professional.id}`}
+                    to={`/provider/${provider.providerID}`}
+                    state={{ scrollToSection: 'services' }}
                     className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 group-hover:underline dark:text-blue-400 hover:text-blue-500 transition-colors"
                   >
                     View Profile
@@ -440,7 +464,7 @@ const Professionals = () => {
           </motion.div>
         )}
 
-        {/* Add this after the professionals grid */}
+        {/* Pagination */}
         {!isLoading && filteredResults.length > 0 && (
           <div className="mt-12 flex items-center justify-center">
             <nav className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-800">
@@ -466,6 +490,7 @@ const Professionals = () => {
                         ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                         : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700'
                     } rounded-lg px-4 py-2 text-sm font-medium`}
+                    disabled={typeof pageNum !== 'number'}
                   >
                     {pageNum}
                   </button>
@@ -474,7 +499,7 @@ const Professionals = () => {
 
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || totalPages === 0}
                 className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700"
               >
                 <ChevronRightIcon className="h-5 w-5" />
@@ -484,21 +509,23 @@ const Professionals = () => {
         )}
 
         {/* Mobile Pagination Info */}
-        <div className="mt-4 text-center sm:hidden">
-          <span className="text-sm text-slate-600 dark:text-slate-400">
-            Page {currentPage} of {totalPages}
-          </span>
-        </div>
+        {!isLoading && filteredResults.length > 0 && (
+          <div className="mt-4 text-center sm:hidden">
+            <span className="text-sm text-slate-600 dark:text-slate-400">
+              Page {currentPage} of {totalPages}
+            </span>
+          </div>
+        )}
 
-        {/* Enhanced No Results Message */}
-        {!isLoading && filteredResults.length === 0 && (
+        {/* No Results Message */}
+        {!isLoading && !error && filteredResults.length === 0 && (
           <motion.div 
             className="mt-12 text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <p className="text-lg font-medium text-slate-900 dark:text-white">
-              No professionals found
+              No service providers found
             </p>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               Try adjusting your search or filters

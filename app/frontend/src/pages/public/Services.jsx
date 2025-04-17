@@ -1,315 +1,153 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MagnifyingGlassIcon, CheckCircleIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, CheckCircleIcon, MapPinIcon, ClockIcon, UserIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
 import { StarIcon } from '@heroicons/react/20/solid';
 import { Link } from 'react-router-dom';
-
-// Update the service interface to match backend data
-const mockServices = [
-  {
-    serviceID: 1,
-    serviceName: 'Plumbing Repair',
-    description: 'Professional plumbing services for your home and business needs.',
-    price: 350.00,
-    duration: '1-2 hours',
-    provider: {
-      providerID: 1,
-      businessName: 'PlumbPro Solutions',
-      serviceCategory: 'Plumbing',
-      location: 'Sandton, Gauteng',
-      verified: true
-    }
-  },
-  {
-    serviceID: 2,
-    serviceName: 'Electrical Installation',
-    description: 'Professional electrical installations and repairs.',
-    price: 450.00,
-    duration: '2-3 hours',
-    provider: {
-      providerID: 2,
-      businessName: 'ElectroTech Solutions',
-      serviceCategory: 'Electrical',
-      location: 'Rosebank, Johannesburg',
-      verified: true
-    }
-  },
-  {
-    serviceID: 3,
-    serviceName: 'Solar Panel Installation',
-    description: 'Complete solar power system installation.',
-    price: 15000.00,
-    duration: '2-3 days',
-    provider: {
-      providerID: 3,
-      businessName: 'SolarTech Pro',
-      serviceCategory: 'Solar',
-      location: 'Sandton, Gauteng',
-      verified: true
-    }
-  },
-  {
-    serviceID: 4,
-    serviceName: 'HVAC Maintenance',
-    description: 'Professional air conditioning and heating system maintenance.',
-    price: 550.00,
-    duration: '2-4 hours',
-    provider: {
-      providerID: 4,
-      businessName: 'CoolAir Pro',
-      serviceCategory: 'HVAC',
-      location: 'Midrand, Gauteng',
-      verified: true
-    }
-  },
-  {
-    serviceID: 5,
-    serviceName: 'Security System Installation',
-    description: 'Complete home security system installation and setup.',
-    price: 8500.00,
-    duration: '1-2 days',
-    provider: {
-      providerID: 5,
-      businessName: 'SecureHome Systems',
-      serviceCategory: 'Security',
-      location: 'Sandton, Gauteng',
-      verified: true
-    }
-  },
-  {
-    serviceID: 6,
-    serviceName: 'Carpentry Services',
-    description: 'Custom woodworking and furniture repairs.',
-    price: 750.00,
-    duration: '4-6 hours',
-    provider: {
-      providerID: 6,
-      businessName: 'WoodCraft Masters',
-      serviceCategory: 'Carpentry',
-      location: 'Rosebank, Johannesburg',
-      verified: true
-    }
-  },
-  {
-    serviceID: 7,
-    serviceName: 'Landscaping Design',
-    description: 'Professional garden design and landscaping services.',
-    price: 2500.00,
-    duration: '3-5 days',
-    provider: {
-      providerID: 7,
-      businessName: 'GreenScape Pro',
-      serviceCategory: 'Landscaping',
-      location: 'Bryanston, Johannesburg',
-      verified: true
-    }
-  },
-  {
-    serviceID: 8,
-    serviceName: 'Painting Services',
-    description: 'Interior and exterior painting solutions.',
-    price: 4500.00,
-    duration: '2-3 days',
-    provider: {
-      providerID: 8,
-      businessName: 'ColorMaster Painters',
-      serviceCategory: 'Painting',
-      location: 'Centurion, Pretoria',
-      verified: false
-    }
-  },
-  {
-    serviceID: 9,
-    serviceName: 'Roofing Repair',
-    description: 'Professional roof repair and maintenance.',
-    price: 3500.00,
-    duration: '1-2 days',
-    provider: {
-      providerID: 9,
-      businessName: 'TopRoof Solutions',
-      serviceCategory: 'Roofing',
-      location: 'Fourways, Johannesburg',
-      verified: true
-    }
-  },
-  {
-    serviceID: 10,
-    serviceName: 'Smart Home Installation',
-    description: 'Complete smart home automation setup.',
-    price: 12000.00,
-    duration: '2-4 days',
-    provider: {
-      providerID: 10,
-      businessName: 'SmartTech Pro',
-      serviceCategory: 'Smart Home',
-      location: 'Sandton, Gauteng',
-      verified: true
-    }
-  },
-  {
-    serviceID: 11,
-    serviceName: 'Bathroom Renovation',
-    description: 'Full bathroom renovation and remodeling.',
-    price: 45000.00,
-    duration: '7-10 days',
-    provider: {
-      providerID: 11,
-      businessName: 'LuxBath Renovations',
-      serviceCategory: 'Renovation',
-      location: 'Morningside, Johannesburg',
-      verified: true
-    }
-  },
-  {
-    serviceID: 12,
-    serviceName: 'Appliance Repair',
-    description: 'Major appliance repair and maintenance.',
-    price: 650.00,
-    duration: '1-3 hours',
-    provider: {
-      providerID: 12,
-      businessName: 'AppliancePro Fix',
-      serviceCategory: 'Appliances',
-      location: 'Randburg, Johannesburg',
-      verified: false
-    }
-  }
-];
-
-// First, define services data outside the component
-const allServices = [
-  {
-    name: 'Plumbing',
-    slug: 'plumbing',
-    description: 'Professional plumbing services for your home and business needs.',
-    tags: ['Leak Repairs', 'Drain Cleaning', 'Geyser Installation', 'Bathroom Repairs'],
-    rating: 4.9,
-    totalReviews: 1250,
-    icon: '🔧'
-  },
-  {
-    name: 'Electrical',
-    slug: 'electrical',
-    description: 'Licensed electricians for all electrical installations and repairs.',
-    tags: ['Wiring', 'Solar Installation', 'Lighting', 'Load Shedding Solutions'],
-    rating: 4.8,
-    totalReviews: 980,
-    icon: '⚡'
-  },
-  // ... existing services ...
-  {
-    name: 'Solar Installation',
-    slug: 'solar-installation',
-    description: 'Professional solar panel installation and maintenance services.',
-    tags: ['Panel Installation', 'Battery Systems', 'Inverters', 'Energy Consulting'],
-    rating: 4.9,
-    totalReviews: 320,
-    icon: '☀️'
-  },
-  {
-    name: 'Garage Door Services',
-    slug: 'garage-doors',
-    description: 'Installation and repair of garage doors and automation systems.',
-    tags: ['Installation', 'Repairs', 'Automation', 'Maintenance'],
-    rating: 4.6,
-    totalReviews: 245,
-    icon: '🚪'
-  },
-  {
-    name: 'Window Services',
-    slug: 'windows',
-    description: 'Professional window installation, repair, and maintenance.',
-    tags: ['Installation', 'Repairs', 'Double Glazing', 'Tinting'],
-    rating: 4.7,
-    totalReviews: 188,
-    icon: '🪟'
-  },
-  {
-    name: 'Locksmith',
-    slug: 'locksmith',
-    description: 'Professional locksmith services for homes and businesses.',
-    tags: ['Lock Installation', 'Emergency Access', 'Security Systems', 'Key Cutting'],
-    rating: 4.8,
-    totalReviews: 412,
-    icon: '🔐'
-  },
-  {
-    name: 'Flooring',
-    slug: 'flooring',
-    description: 'Expert flooring installation and repair services.',
-    tags: ['Wooden Floors', 'Tiles', 'Carpets', 'Vinyl'],
-    rating: 4.7,
-    totalReviews: 356,
-    icon: '🏗️'
-  },
-  {
-    name: 'Garden Services',
-    slug: 'garden',
-    description: 'Professional garden maintenance and landscaping services.',
-    tags: ['Maintenance', 'Landscaping', 'Tree Services', 'Irrigation'],
-    rating: 4.6,
-    totalReviews: 289,
-    icon: '🌿'
-  },
-  {
-    name: 'Home Cleaning',
-    slug: 'cleaning',
-    description: 'Professional home and office cleaning services.',
-    tags: ['Deep Cleaning', 'Regular Service', 'Window Cleaning', 'Carpet Cleaning'],
-    rating: 4.5,
-    totalReviews: 567,
-    icon: '🧹'
-  },
-  {
-    name: 'Waterproofing',
-    slug: 'waterproofing',
-    description: 'Expert waterproofing solutions for all surfaces.',
-    tags: ['Roof Sealing', 'Damp Proofing', 'Wall Sealing', 'Basement Proofing'],
-    rating: 4.8,
-    totalReviews: 234,
-    icon: '💧'
-  }
-];
+import publicAPI from '../../services/public/publicAPI';
 
 const Services = () => {
+  const [services, setServices] = useState([]);
+  const [providers, setProviders] = useState({});
+  const [serviceReviews, setServiceReviews] = useState({});
+  const [reviewsLoading, setReviewsLoading] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [categories, setCategories] = useState(['All']);
   const itemsPerPage = 9;
+
+  // Fetch services from backend
+  useEffect(() => {
+    const fetchServicesAndProviders = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Fetch all services
+        const servicesResponse = await publicAPI.getServices();
+        console.log('Services data:', servicesResponse.data);
+        const servicesData = servicesResponse.data || [];
+        setServices(servicesData);
+        
+        // Get unique provider IDs from services
+        const providerIds = [...new Set(servicesData.map(service => service.providerID))];
+        
+        // Fetch provider data for each unique provider ID
+        const providersData = {};
+        await Promise.all(
+          providerIds.map(async (providerId) => {
+            try {
+              const providerResponse = await publicAPI.getServiceProviderById(providerId);
+              providersData[providerId] = providerResponse.data;
+            } catch (err) {
+              console.error(`Error fetching provider ${providerId}:`, err);
+            }
+          })
+        );
+        
+        setProviders(providersData);
+        
+        // Extract unique categories from services
+        const uniqueCategories = ['All'];
+        for (const providerId in providersData) {
+          if (providersData[providerId]?.serviceCategory && 
+              !uniqueCategories.includes(providersData[providerId].serviceCategory)) {
+            uniqueCategories.push(providersData[providerId].serviceCategory);
+          }
+        }
+        
+        setCategories(uniqueCategories);
+        
+        // Start loading reviews for each service
+        const reviewLoadingState = {};
+        servicesData.forEach(service => {
+          reviewLoadingState[service.serviceID] = true;
+        });
+        setReviewsLoading(reviewLoadingState);
+        
+        // Fetch reviews for each service
+        const reviewsData = {};
+        await Promise.all(
+          servicesData.map(async (service) => {
+            try {
+              const reviewsResponse = await publicAPI.getServiceReviews(service.serviceID);
+              const reviews = reviewsResponse.data || [];
+              
+              // Calculate average rating and review count
+              const totalReviews = reviews.length;
+              let avgRating = 0;
+              
+              if (totalReviews > 0) {
+                const ratingSum = reviews.reduce((sum, review) => sum + review.rating, 0);
+                avgRating = ratingSum / totalReviews;
+              }
+              
+              reviewsData[service.serviceID] = {
+                reviews: reviews,
+                averageRating: avgRating,
+                totalReviews: totalReviews
+              };
+            } catch (err) {
+              console.error(`Error fetching reviews for service ${service.serviceID}:`, err);
+              reviewsData[service.serviceID] = { 
+                reviews: [],
+                averageRating: 0,
+                totalReviews: 0
+              };
+            } finally {
+              setReviewsLoading(prev => ({
+                ...prev,
+                [service.serviceID]: false
+              }));
+            }
+          })
+        );
+        
+        setServiceReviews(reviewsData);
+        
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setError('Failed to load services. Please try again.');
+      } finally {
+        // Small delay for smoother UX
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+      }
+    };
+    
+    fetchServicesAndProviders();
+  }, []);
 
   // Memoized filtered services
   const filteredServices = React.useMemo(() => {
-    return mockServices.filter(service => {
+    if (!services.length) return [];
+    
+    return services.filter(service => {
       const searchTerms = searchQuery.toLowerCase().trim();
+      const provider = providers[service.providerID] || {};
       
       const matchesSearch = !searchTerms || 
         service.serviceName.toLowerCase().includes(searchTerms) ||
         service.description.toLowerCase().includes(searchTerms) ||
-        service.provider.businessName.toLowerCase().includes(searchTerms);
+        provider.businessName?.toLowerCase().includes(searchTerms);
 
       const matchesCategory = !selectedCategory || 
-        service.provider.serviceCategory.toLowerCase() === selectedCategory.toLowerCase();
+        provider.serviceCategory?.toLowerCase() === selectedCategory.toLowerCase();
 
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, services, providers]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
   }, [searchQuery, selectedCategory]);
 
-  const handleSearch = (value) => {
-    setSearchQuery(value);
-    // Clear category filter when searching
-    setSelectedCategory(null);
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
@@ -322,11 +160,6 @@ const Services = () => {
     setSelectedCategory(null);
     setCurrentPage(1);
   };
-
-  // Get unique categories for filter buttons
-  const availableCategories = ['All', ...new Set(mockServices.map(service => 
-    service.provider.serviceCategory
-  ))];
 
   // Animation variants
   const containerVariants = {
@@ -351,7 +184,7 @@ const Services = () => {
   const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCategories = filteredServices.slice(startIndex, endIndex);
+  const currentServices = filteredServices.slice(startIndex, endIndex);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -384,6 +217,24 @@ const Services = () => {
     return range;
   };
 
+  // Helper to show review stars
+  const renderStars = (rating) => {
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => (
+          <StarIcon
+            key={i}
+            className={`h-4 w-4 ${
+              i < Math.floor(rating)
+                ? 'text-yellow-400'
+                : 'text-gray-300 dark:text-gray-600'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900">
       {/* Enhanced Hero Section */}
@@ -414,7 +265,7 @@ const Services = () => {
                   className="block w-full rounded-xl border-2 border-white/20 bg-white/10 py-4 pl-11 pr-4 text-white backdrop-blur-sm placeholder:text-white/60 focus:border-white/30 focus:outline-none"
                   placeholder="Search services by name or category..."
                   value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={handleSearch}
                 />
               </div>
             </div>
@@ -425,55 +276,114 @@ const Services = () => {
       {/* Main Content with Filters */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {/* Results Summary */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Found {filteredServices.length} services
             {searchQuery && ` matching "${searchQuery}"`}
+            {selectedCategory && ` in ${selectedCategory}`}
           </p>
+          {(searchQuery || selectedCategory) && (
+            <button
+              onClick={clearFilters}
+              className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
 
         {/* Category Filters */}
-        <div className="mb-8 flex flex-wrap gap-2">
-          {availableCategories.map((category) => (
-            <button
+        <motion.div 
+          className="mb-8 flex flex-wrap gap-2"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {categories.map((category) => (
+            <motion.button
               key={category}
-              onClick={() => handleCategoryClick(category === 'All' ? null : category)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                selectedCategory === category
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+              onClick={() => handleCategoryClick(category)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                (category === 'All' && !selectedCategory) || category === selectedCategory
+                  ? 'bg-blue-600 text-white shadow-lg scale-105'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 hover:scale-105 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
               }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               {category}
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
+
+        {/* Error Message */}
+        {error && !isLoading && (
+          <motion.div 
+            className="rounded-lg bg-red-50 p-4 text-center dark:bg-red-900/20"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 text-sm font-medium text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200"
+            >
+              Try again
+            </button>
+          </motion.div>
+        )}
 
         {/* No Results Message */}
-        {filteredServices.length === 0 && (
-          <div className="mt-12 text-center">
+        {!isLoading && !error && filteredServices.length === 0 && (
+          <motion.div 
+            className="mt-12 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             <p className="text-lg font-medium text-slate-900 dark:text-white">
               No services found
             </p>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               Try adjusting your search or filters
             </p>
-            <button
+            <motion.button
               onClick={clearFilters}
               className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               Clear all filters
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         )}
 
-        {/* Services Grid - Keep your existing grid code here */}
+        {/* Services Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {[...Array(9)].map((_, index) => (
-              <div key={index} className="animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700 h-64" />
+          <motion.div 
+            className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {[...Array(6)].map((_, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className="animate-pulse rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800"
+              >
+                <div className="h-6 w-3/4 bg-slate-200 rounded dark:bg-slate-700 mb-4" />
+                <div className="h-20 w-full bg-slate-200 rounded dark:bg-slate-700 mb-4" />
+                <div className="flex justify-between items-center mb-4">
+                  <div className="h-5 w-1/3 bg-slate-200 rounded dark:bg-slate-700" />
+                  <div className="h-5 w-1/3 bg-slate-200 rounded dark:bg-slate-700" />
+                </div>
+                <div className="h-10 w-full bg-slate-200 rounded dark:bg-slate-700 mb-4" />
+                <div className="flex justify-between items-center">
+                  <div className="h-6 w-20 bg-slate-200 rounded dark:bg-slate-700" />
+                  <div className="h-8 w-24 bg-blue-200 rounded dark:bg-blue-900" />
+                </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
           <motion.div 
             className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
@@ -481,121 +391,169 @@ const Services = () => {
             initial="hidden"
             animate="visible"
           >
-            {currentCategories.map((service) => (
-              <motion.div 
-                key={service.serviceID}
-                variants={itemVariants}
-                className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-lg dark:border-slate-700 dark:bg-slate-800"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                        {service.serviceName}
-                      </h3>
-                      {service.provider.verified && (
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
-                          <CheckCircleIcon className="mr-1 h-4 w-4" />
-                          Verified
-                        </span>
-                      )}
-                    </div>
-                    
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      {service.description}
-                    </p>
-
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="flex items-center text-slate-600 dark:text-slate-400">
-                        <MapPinIcon className="h-4 w-4 mr-1" />
-                        <span className="text-sm">{service.provider.location}</span>
+            {currentServices.map((service) => {
+              const provider = providers[service.providerID] || {};
+              const reviewData = serviceReviews[service.serviceID] || { averageRating: 0, totalReviews: 0 };
+              const isReviewLoading = reviewsLoading[service.serviceID];
+              
+              return (
+                <motion.div 
+                  key={service.serviceID}
+                  variants={itemVariants}
+                  className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-lg dark:border-slate-700 dark:bg-slate-800"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                          {service.serviceName}
+                        </h3>
+                        {provider.verified && (
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                            <CheckCircleIcon className="mr-1 h-4 w-4" />
+                            Verified
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center text-slate-600 dark:text-slate-400">
-                        <ClockIcon className="h-4 w-4 mr-1" />
-                        <span className="text-sm">{service.duration}</span>
-                      </div>
-                    </div>
+                      
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                        {service.description}
+                      </p>
 
-                    <div className="flex items-center justify-between">
-                      <div className="text-lg font-semibold text-slate-900 dark:text-white">
-                        R{service.price.toFixed(2)}
+                      <div className="flex flex-wrap items-center gap-4 mb-4">
+                        <div className="flex items-center text-slate-600 dark:text-slate-400">
+                          <MapPinIcon className="h-4 w-4 mr-1" />
+                          <span className="text-sm">{provider.location || "Location not specified"}</span>
+                        </div>
+                        <div className="flex items-center text-slate-600 dark:text-slate-400">
+                          <ClockIcon className="h-4 w-4 mr-1" />
+                          <span className="text-sm">{service.duration}</span>
+                        </div>
                       </div>
-                      <Link
-                        to="/login"
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
-                      >
-                        Book Now
-                      </Link>
-                    </div>
 
-                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <div className="text-sm text-slate-600 dark:text-slate-400">
-                        Provided by{' '}
-                        <Link 
-                          to={`/providers/${service.provider.providerID}`}
-                          className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      {/* Service Reviews Section */}
+                      <div className="mt-3 mb-4">
+                        {isReviewLoading ? (
+                          <div className="flex items-center space-x-1 animate-pulse">
+                            {[...Array(5)].map((_, i) => (
+                              <div key={i} className="h-4 w-4 rounded bg-slate-200 dark:bg-slate-700" />
+                            ))}
+                            <div className="ml-2 h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {renderStars(reviewData.averageRating)}
+                            <span className="text-sm text-slate-600 dark:text-slate-400">
+                              {reviewData.averageRating.toFixed(1)} ({reviewData.totalReviews} {reviewData.totalReviews === 1 ? 'review' : 'reviews'})
+                            </span>
+                            {reviewData.totalReviews > 0 && (
+                              <Link 
+                                to={`/provider/${service.providerID}?service=${service.serviceID}&tab=reviews`}
+                                className="ml-auto text-xs text-blue-600 hover:underline dark:text-blue-400"
+                              >
+                                <ChatBubbleBottomCenterTextIcon className="inline h-4 w-4 mr-1" />
+                                Read reviews
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                          R{service.price.toFixed(2)}
+                        </div>
+                        <Link
+                          to="/login"
+                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
                         >
-                          {service.provider.businessName}
+                          Book Now
                         </Link>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center">
+                          <div className="text-sm text-slate-600 dark:text-slate-400">
+                            Provided by{' '}
+                            <Link 
+                              to={`/provider/${service.providerID}`}
+                              className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              {provider.businessName || `Provider #${service.providerID}`}
+                            </Link>
+                          </div>
+                          
+                          {provider.rating && (
+                            <div className="flex items-center">
+                              <StarIcon className="h-4 w-4 text-yellow-400 mr-1" />
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                {provider.rating.toFixed(1)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
 
-        {/* Keep your existing pagination */}
-        <div className="mt-12 flex items-center justify-center">
-          <nav className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-800">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700"
-            >
-              <ChevronLeftIcon className="h-5 w-5" />
-            </button>
+        {/* Pagination */}
+        {!isLoading && filteredServices.length > 0 && (
+          <div className="mt-12 flex items-center justify-center">
+            <nav className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-800">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700"
+              >
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
 
-            <div className="hidden sm:flex">
-              {getPageNumbers(
-                currentPage,
-                Math.ceil(filteredServices.length / itemsPerPage)
-              ).map((pageNum, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    if (typeof pageNum === 'number') {
-                      handlePageChange(pageNum);
-                    }
-                  }}
-                  className={`${
-                    pageNum === currentPage
-                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                      : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700'
-                  } rounded-lg px-4 py-2 text-sm font-medium`}
-                >
-                  {pageNum}
-                </button>
-              ))}
-            </div>
+              <div className="hidden sm:flex">
+                {getPageNumbers(currentPage, totalPages).map((pageNum, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      if (typeof pageNum === 'number') {
+                        handlePageChange(pageNum);
+                      }
+                    }}
+                    className={`${
+                      pageNum === currentPage
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                        : pageNum === '...'
+                        ? 'cursor-default text-slate-500 dark:text-slate-400'
+                        : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700'
+                    } rounded-lg px-4 py-2 text-sm font-medium`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+              </div>
 
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700"
-            >
-              <ChevronRightIcon className="h-5 w-5" />
-            </button>
-          </nav>
-        </div>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-700"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+            </nav>
+          </div>
+        )}
 
         {/* Mobile Pagination Info */}
-        <div className="mt-4 text-center sm:hidden">
-          <span className="text-sm text-slate-600 dark:text-slate-400">
-            Page {currentPage} of {totalPages}
-          </span>
-        </div>
+        {!isLoading && filteredServices.length > 0 && (
+          <div className="mt-4 text-center sm:hidden">
+            <span className="text-sm text-slate-600 dark:text-slate-400">
+              Page {currentPage} of {totalPages}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
