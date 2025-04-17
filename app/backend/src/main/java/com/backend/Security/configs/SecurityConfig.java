@@ -49,10 +49,14 @@ public class SecurityConfig {
                             "favicon.ico",
                             "/error",
 
+                            "/api/v1/reviews/service/{serviceID}",
+                            "/api/v1/reviews/provider/{providerID}",
+
                             "/api/v1/service-providers",
                             "/api/v1/service-providers/{id}",
 
-                            "/api/v1/services/{providerID}",
+                            "/api/v1/services",
+                            "/api/v1/services/{serviceID}",
                             "/api/v1/services/provider/{providerID}"
                     ).permitAll();
                     auth.requestMatchers("/api/v1/customers/admin/**").hasAuthority("ROLE_ADMIN");

@@ -27,6 +27,12 @@ public class ServiceController {
         return ResponseEntity.ok(serviceResponse);
     }
 
+    @GetMapping
+    public ResponseEntity<List<ServiceResponse>> getAllServices() {
+        List<ServiceResponse> services = serviceService.getAllServices();
+        return ResponseEntity.ok(services);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ServiceResponse> getServiceById(@PathVariable int id) {
         ServiceResponse serviceResponse = serviceService.getServiceById(id);
