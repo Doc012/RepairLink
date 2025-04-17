@@ -38,7 +38,7 @@ public class ServiceProviderController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("provider/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ServiceProvider> getServiceProviderById(@PathVariable int id) {
         ServiceProvider serviceProvider = serviceProviderService.getServiceProviderById(id);
         return ResponseEntity.ok(serviceProvider);
@@ -49,4 +49,6 @@ public class ServiceProviderController {
         List<ServiceProvider> serviceProviders = serviceProviderService.getAllServiceProviders();
         return ResponseEntity.ok(serviceProviders);
     }
+
+
 }
