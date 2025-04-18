@@ -120,6 +120,28 @@ const customerAPI = {
    */
   deleteReview: (reviewId) => {
     return apiClient.delete(`/customers/reviews/${reviewId}`);
+  },
+
+  /**
+   * Get all available services with optional filters
+   * @param {Object} filters - Optional filters like category or search
+   * @returns {Promise} Services list
+   */
+  getServices: (filters = {}) => {
+    // Change from '/services' to '/v1/services'
+    return apiClient.get('/v1/services', { params: filters });
+  },
+
+  /**
+   * Get available time slots for a service on a specific date
+   * @param {string} serviceId - Service ID
+   * @param {string} date - Date in YYYY-MM-DD format
+   * @returns {Promise} Available time slots
+   */
+  getAvailableTimeSlots: (serviceId, date) => {
+    return apiClient.get(`/services/${serviceId}/available-slots`, {
+      params: { date }
+    });
   }
 };
 

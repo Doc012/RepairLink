@@ -5,6 +5,15 @@ import apiClient from '../../utils/apiClient';
  */
 const userAPI = {
   /**
+   * Get user by email
+   * @param {string} email - User email
+   * @returns {Promise} User data
+   */
+  getUserByEmail: (email) => {
+    return apiClient.get(`/v1/users/by-email/${email}`);
+  },
+
+  /**
    * Get user profile
    * @returns {Promise} User profile data
    */
@@ -14,11 +23,12 @@ const userAPI = {
 
   /**
    * Update user profile
+   * @param {number} userID - User ID
    * @param {Object} profileData - Updated profile data
    * @returns {Promise} Update response
    */
-  updateProfile: (profileData) => {
-    return apiClient.put('/users/profile', profileData);
+  updateProfile: (userID, profileData) => {
+    return apiClient.put(`/v1/users/user/${userID}/basic-info`, profileData);
   },
 
   /**
@@ -28,7 +38,7 @@ const userAPI = {
    * @returns {Promise} Password change response
    */
   changePassword: (currentPassword, newPassword) => {
-    return apiClient.put('/users/change-password', { 
+    return apiClient.post('/auth/change-password', { 
       currentPassword, 
       newPassword 
     });
