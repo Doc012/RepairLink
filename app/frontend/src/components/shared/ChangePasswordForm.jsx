@@ -1,316 +1,328 @@
-import { useState } from 'react';
-import { KeyIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import { motion } from 'framer-motion';
-import axios from 'axios';
+import { useState, useEffect } from 'react';
+import { KeyIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
-const ChangePasswordForm = () => {
+const ChangePasswordForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
+  const [errors, setErrors] = useState({});
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Password strength indicator state
+  // Password strength state
   const [passwordStrength, setPasswordStrength] = useState({
-    length: false,
-    hasUpperCase: false,
-    hasLowerCase: false,
-    hasNumber: false,
-    strength: 'weak'
+    score: 0, // 0-4, where 0 is very weak and 4 is very strong
+    feedback: ''
   });
+
+  // Calculate password strength when password changes
+  useEffect(() => {
+    if (!formData.newPassword) {
+      setPasswordStrength({ score: 0, feedback: '' });
+      return;
+    }
+    
+    // Evaluate password strength
+    const strength = evaluatePasswordStrength(formData.newPassword);
+    setPasswordStrength(strength);
+  }, [formData.newPassword]);
+
+  // Password strength evaluation function
+  const evaluatePasswordStrength = (password) => {
+    // Base score
+    let score = 0;
+    let feedback = '';
+    
+    if (!password) return { score, feedback: '' };
+    
+    // Length check
+    if (password.length < 8) {
+      feedback = 'Password is too short';
+      return { score, feedback };
+    } else if (password.length >= 12) {
+      score += 2;
+    } else if (password.length >= 8) {
+      score += 1;
+    }
+    
+    // Complexity checks
+    const hasLower = /[a-z]/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+    
+    // Add scores based on complexity
+    score += hasLower ? 1 : 0;
+    score += hasUpper ? 1 : 0;
+    score += hasDigit ? 1 : 0;
+    score += hasSpecial ? 1 : 0;
+    
+    // Cap the score at 4
+    score = Math.min(score, 4);
+    
+    // Generate feedback based on missing criteria
+    if (score < 3) {
+      const missing = [];
+      if (!hasLower) missing.push('lowercase letters');
+      if (!hasUpper) missing.push('uppercase letters');
+      if (!hasDigit) missing.push('numbers');
+      if (!hasSpecial) missing.push('special characters');
+      
+      if (missing.length > 0) {
+        feedback = `Consider adding ${missing.join(', ')}`;
+      }
+    }
+    
+    return { score, feedback };
+  };
+
+  // Get color class for password strength visualization
+  const getStrengthColorClass = (score) => {
+    switch (score) {
+      case 0: return 'bg-gray-200';
+      case 1: return 'bg-red-500';
+      case 2: return 'bg-orange-500';
+      case 3: return 'bg-yellow-500';
+      case 4: return 'bg-green-500';
+      default: return 'bg-gray-200';
+    }
+  };
+
+  // Get text description for password strength
+  const getStrengthText = (score) => {
+    switch (score) {
+      case 0: return '';
+      case 1: return 'Very Weak';
+      case 2: return 'Weak';
+      case 3: return 'Moderate';
+      case 4: return 'Strong';
+      default: return '';
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
-    // Clear errors when user types
-    if (error) setError('');
-    if (success) setSuccess(false);
-    
-    // Check password strength if newPassword field changes
-    if (name === 'newPassword') {
-      checkPasswordStrength(value);
-    }
-  };
-  
-  const checkPasswordStrength = (password) => {
-    const strength = {
-      length: password.length >= 8,
-      hasUpperCase: /[A-Z]/.test(password),
-      hasLowerCase: /[a-z]/.test(password),
-      hasNumber: /[0-9]/.test(password),
-      strength: 'weak'
-    };
-    
-    // Calculate password strength
-    const checks = [strength.length, strength.hasUpperCase, strength.hasLowerCase, strength.hasNumber];
-    const passedChecks = checks.filter(Boolean).length;
-    
-    if (passedChecks === 4) {
-      strength.strength = 'strong';
-    } else if (passedChecks >= 2) {
-      strength.strength = 'medium';
-    } else {
-      strength.strength = 'weak';
-    }
-    
-    setPasswordStrength(strength);
-  };
-  
-  // Get strength color for the progress bar
-  const getStrengthColor = () => {
-    switch (passwordStrength.strength) {
-      case 'strong':
-        return 'bg-green-500 dark:bg-green-500';
-      case 'medium':
-        return 'bg-yellow-500 dark:bg-yellow-500';
-      default:
-        return 'bg-red-500 dark:bg-red-500';
+    // Clear error when field is edited
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
   };
 
-  const validateForm = () => {
+  const validate = () => {
+    const newErrors = {};
+    
     if (!formData.currentPassword) {
-      setError('Current password is required');
-      return false;
+      newErrors.currentPassword = 'Current password is required';
     }
     
     if (!formData.newPassword) {
-      setError('New password is required');
-      return false;
-    }
-    
-    if (formData.newPassword.length < 8) {
-      setError('New password must be at least 8 characters long');
-      return false;
-    }
-    
-    if (!passwordStrength.hasUpperCase || !passwordStrength.hasLowerCase || !passwordStrength.hasNumber) {
-      setError('Password must include uppercase, lowercase letters and numbers');
-      return false;
+      newErrors.newPassword = 'New password is required';
+    } else if (formData.newPassword.length < 8) {
+      newErrors.newPassword = 'Password must be at least 8 characters long';
+    } else if (passwordStrength.score < 2) { // Require at least a weak password
+      newErrors.newPassword = 'Password is too weak. Make it stronger.';
     }
     
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('New passwords do not match');
-      return false;
+      newErrors.confirmPassword = 'Passwords do not match';
     }
     
-    if (formData.currentPassword === formData.newPassword) {
-      setError('New password must be different from current password');
-      return false;
-    }
-    
-    return true;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
-    
-    setIsLoading(true);
-    setError('');
+    if (!validate()) return;
     
     try {
-      const response = await axios.post(
-        'http://localhost:8080/api/auth/change-password',
-        {
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword
-        },
-        {
-          withCredentials: true
-        }
-      );
+      setSubmitting(true);
+      const result = await onSubmit(formData.currentPassword, formData.newPassword);
       
-      console.log('Password change response:', response.data);
-      setSuccess(true);
-      
-      // Reset form data
-      setFormData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      
-      // Reset password strength
-      setPasswordStrength({
-        length: false,
-        hasUpperCase: false,
-        hasLowerCase: false,
-        hasNumber: false,
-        strength: 'weak'
-      });
-      
-    } catch (error) {
-      console.error('Failed to change password:', error);
-      
-      // Handle error response from API
-      if (error.response?.data) {
-        const errorMessage = error.response.data;
-        if (typeof errorMessage === 'string') {
-          if (errorMessage.includes('Current password is incorrect')) {
-            setError('Your current password is incorrect');
-          } else {
-            setError(errorMessage.replace('Error changing password: ', ''));
-          }
-        } else {
-          setError('Failed to change password. Please try again.');
-        }
-      } else {
-        setError('Network error. Please check your connection and try again.');
+      // Check if result is a success object or error object
+      if (result === true || (result && result.success !== false)) {
+        // Reset form if successfully submitted
+        setFormData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+      } else if (result && result.message) {
+        // Display the error from the API
+        setErrors(prev => ({
+          ...prev,
+          currentPassword: result.message
+        }));
       }
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-4 border-t border-gray-200 pt-4 dark:border-slate-700">
-      {success && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/10 dark:text-green-400"
-        >
-          <div className="flex items-center">
-            <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
-            Password changed successfully!
-          </div>
-        </motion.div>
-      )}
-      
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/10 dark:text-red-400"
-        >
-          <div className="flex items-center">
-            <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
-            {error}
-          </div>
-        </motion.div>
-      )}
-      
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Current Password */}
       <div>
-        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Current Password
         </label>
-        <div className="mt-1">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <KeyIcon className="h-5 w-5 text-gray-400" />
+          </div>
           <input
+            type={showCurrentPassword ? "text" : "password"}
             id="currentPassword"
             name="currentPassword"
-            type="password"
-            autoComplete="current-password"
-            required
             value={formData.currentPassword}
             onChange={handleChange}
-            className="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-500"
-            placeholder="••••••••"
-            disabled={isLoading}
+            className={`block w-full pl-10 pr-10 py-2 rounded-md ${
+              errors.currentPassword 
+                ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+            }`}
           />
+          <button 
+            type="button"
+            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          >
+            {showCurrentPassword ? (
+              <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+            ) : (
+              <EyeIcon className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
         </div>
+        {errors.currentPassword && (
+          <p className="mt-1 text-sm text-red-600">{errors.currentPassword}</p>
+        )}
       </div>
       
+      {/* New Password */}
       <div>
-        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           New Password
         </label>
-        <div className="mt-1">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <KeyIcon className="h-5 w-5 text-gray-400" />
+          </div>
           <input
+            type={showNewPassword ? "text" : "password"}
             id="newPassword"
             name="newPassword"
-            type="password"
-            autoComplete="new-password"
-            required
             value={formData.newPassword}
             onChange={handleChange}
-            className="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-500"
-            placeholder="••••••••"
-            disabled={isLoading}
+            className={`block w-full pl-10 pr-10 py-2 rounded-md ${
+              errors.newPassword 
+                ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+            }`}
           />
+          <button 
+            type="button"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          >
+            {showNewPassword ? (
+              <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+            ) : (
+              <EyeIcon className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
         </div>
+        {errors.newPassword && (
+          <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+        )}
+
+        {/* Password Strength Indicator */}
+        {formData.newPassword && (
+          <div className="mt-2">
+            <div className="flex justify-between mb-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Password strength: 
+                <span className={`ml-1 font-medium ${
+                  passwordStrength.score <= 1 ? 'text-red-600' : 
+                  passwordStrength.score === 2 ? 'text-orange-600' : 
+                  passwordStrength.score === 3 ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {getStrengthText(passwordStrength.score)}
+                </span>
+              </div>
+            </div>
+            <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-1.5 rounded-full ${getStrengthColorClass(passwordStrength.score)}`} 
+                style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+              ></div>
+            </div>
+            {passwordStrength.feedback && (
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                {passwordStrength.feedback}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Use at least 8 characters with a mix of uppercase, lowercase, numbers, and symbols.
+            </p>
+          </div>
+        )}
       </div>
       
-      {/* Password strength indicator */}
-      {formData.newPassword && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Password strength: 
-              <span className={`ml-1 font-semibold ${
-                passwordStrength.strength === 'strong' ? 'text-green-600 dark:text-green-400' : 
-                passwordStrength.strength === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 
-                'text-red-600 dark:text-red-400'
-              }`}>
-                {passwordStrength.strength.charAt(0).toUpperCase() + passwordStrength.strength.slice(1)}
-              </span>
-            </span>
-          </div>
-          <div className="h-1 w-full rounded-full bg-slate-200 dark:bg-slate-700">
-            <div 
-              className={`h-1 rounded-full transition-all duration-300 ${getStrengthColor()}`} 
-              style={{ 
-                width: passwordStrength.strength === 'strong' ? '100%' : 
-                      passwordStrength.strength === 'medium' ? '66%' : '33%' 
-              }}
-            />
-          </div>
-          <ul className="grid gap-1 text-xs text-slate-600 dark:text-slate-400">
-            <li className={`flex items-center ${passwordStrength.length ? 'text-green-600 dark:text-green-400' : ''}`}>
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.length ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
-              At least 8 characters
-            </li>
-            <li className={`flex items-center ${passwordStrength.hasUpperCase ? 'text-green-600 dark:text-green-400' : ''}`}>
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasUpperCase ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
-              At least one uppercase letter
-            </li>
-            <li className={`flex items-center ${passwordStrength.hasLowerCase ? 'text-green-600 dark:text-green-400' : ''}`}>
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasLowerCase ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
-              At least one lowercase letter
-            </li>
-            <li className={`flex items-center ${passwordStrength.hasNumber ? 'text-green-600 dark:text-green-400' : ''}`}>
-              <span className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${passwordStrength.hasNumber ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
-              At least one number
-            </li>
-          </ul>
-        </div>
-      )}
-      
+      {/* Confirm New Password */}
       <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Confirm New Password
         </label>
-        <div className="mt-1">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <KeyIcon className="h-5 w-5 text-gray-400" />
+          </div>
           <input
+            type="password"
             id="confirmPassword"
             name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            required
             value={formData.confirmPassword}
             onChange={handleChange}
-            className="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:focus:border-blue-500"
-            placeholder="••••••••"
-            disabled={isLoading}
+            className={`block w-full pl-10 py-2 rounded-md ${
+              errors.confirmPassword 
+                ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+            }`}
           />
         </div>
+        {errors.confirmPassword && (
+          <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+        )}
       </div>
       
-      <div className="flex justify-end">
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
-          disabled={isLoading}
-          className="inline-flex justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800"
+          disabled={submitting || passwordStrength.score < 2}
+          className="px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed dark:bg-blue-500 dark:hover:bg-blue-600"
         >
-          {isLoading ? 'Updating...' : 'Update Password'}
+          {submitting ? 'Updating...' : 'Update Password'}
         </button>
       </div>
     </form>

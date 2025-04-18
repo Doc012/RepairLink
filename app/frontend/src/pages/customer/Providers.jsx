@@ -9,82 +9,28 @@ import {
   CheckBadgeIcon,
   ClockIcon,
   CurrencyDollarIcon,
-  XMarkIcon
+  XMarkIcon,
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { format } from 'date-fns';
+import { publicAPI, customerAPI } from '../../services';
+import { toast } from 'react-hot-toast';
 
 const CustomerProviders = () => {
-  const [providers, setProviders] = useState([
-    {
-      providerID: 1,
-      businessName: "Smith's Auto Repair",
-      serviceCategory: "Automotive",
-      location: "Sandton, Johannesburg",
-      rating: 4.8,
-      totalReviews: 156,
-      verified: true,
-      picUrl: "/src/assets/images/hero/repair-2.jpg"
-    },
-    {
-      providerID: 2,
-      businessName: "PowerTech Solutions",
-      serviceCategory: "Electrical",
-      location: "Rosebank, Johannesburg",
-      rating: 4.9,
-      totalReviews: 128,
-      verified: true,
-      picUrl: "/src/assets/images/hero/repair-2.jpg"
-    },
-    {
-      providerID: 3,
-      businessName: "Pro Plumbers SA",
-      serviceCategory: "Plumbing",
-      location: "Braamfontein, Johannesburg",
-      rating: 4.7,
-      totalReviews: 189,
-      verified: true,
-      picUrl: "/src/assets/images/hero/repair-2.jpg"
-    },
-    {
-      providerID: 4,
-      businessName: "Secure Tech Systems",
-      serviceCategory: "Security",
-      location: "Fourways, Johannesburg",
-      rating: 4.6,
-      totalReviews: 92,
-      verified: true,
-      picUrl: "/src/assets/images/hero/repair-2.jpg"
-    },
-    {
-      providerID: 5,
-      businessName: "Garden Masters",
-      serviceCategory: "Landscaping",
-      location: "Morningside, Johannesburg",
-      rating: 4.5,
-      totalReviews: 75,
-      verified: true,
-      picUrl: "/src/assets/images/hero/repair-2.jpg"
-    },
-    {
-      providerID: 6,
-      businessName: "BuildRight Construction",
-      serviceCategory: "Construction",
-      location: "Midrand, Johannesburg",
-      rating: 4.8,
-      totalReviews: 143,
-      verified: true,
-      picUrl: "/src/assets/images/hero/repair-2.jpg"
-    }
-  ]);
+  // Replace mock data with real state
+  const [providers, setProviders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     search: '',
     category: 'all',
     rating: 'all',
     location: 'all'
   });
+  
+  // Keep your existing state for modals and selected items
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -94,12 +40,137 @@ const CustomerProviders = () => {
     time: '',
     notes: ''
   });
+  
+  // Add states for provider details
+  const [providerServices, setProviderServices] = useState([]);
+  const [providerReviews, setProviderReviews] = useState([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [providerReviewCounts, setProviderReviewCounts] = useState({});
+  // Add provider review ratings state to track average ratings from actual reviews
+  const [providerReviewRatings, setProviderReviewRatings] = useState({});
 
+  // Fetch all providers
   useEffect(() => {
-    // TODO: Fetch providers data
-    setIsLoading(false);
-  }, []);
+    const fetchProviders = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Get service providers with filters
+        const response = await publicAPI.getServiceProviders({
+          category: filters.category !== 'all' ? filters.category : undefined,
+          rating: filters.rating !== 'all' ? filters.rating : undefined,
+          location: filters.location !== 'all' ? filters.location : undefined,
+          search: filters.search || undefined
+        });
+        
+        setProviders(response.data);
+        
+        // Extract unique categories and locations for filter dropdowns
+        if (response.data && response.data.length > 0) {
+          const uniqueCategories = [...new Set(
+            response.data
+              .map(provider => provider.serviceCategory)
+              .filter(category => category)
+          )];
+          
+          const uniqueLocations = [...new Set(
+            response.data
+              .map(provider => {
+                // Extract city from location string like "Sandton, Johannesburg"
+                const locationParts = provider.location ? provider.location.split(',') : [];
+                return locationParts.length > 0 ? locationParts[0].trim() : null;
+              })
+              .filter(location => location)
+          )];
+          
+          setCategories(uniqueCategories);
+          setLocations(uniqueLocations);
+        }
+      } catch (err) {
+        console.error("Failed to fetch providers:", err);
+        setError('Failed to load service providers. Please try again later.');
+        toast.error('Failed to load service providers');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    fetchProviders();
+  }, [filters]);
+
+  // Fetch provider details (services and reviews) when a provider is selected
+  useEffect(() => {
+    if (!selectedProvider) return;
+    
+    const fetchProviderDetails = async () => {
+      try {
+        setIsLoadingDetails(true);
+        
+        // Fetch provider services
+        const servicesResponse = await publicAPI.getProviderServices(selectedProvider.providerID);
+        setProviderServices(servicesResponse.data || []);
+        
+        // Fetch provider reviews
+        const reviewsResponse = await publicAPI.getProviderReviews(selectedProvider.providerID);
+        setProviderReviews(reviewsResponse.data || []);
+        
+      } catch (err) {
+        console.error("Failed to fetch provider details:", err);
+        toast.error("Couldn't load provider details");
+      } finally {
+        setIsLoadingDetails(false);
+      }
+    };
+    
+    fetchProviderDetails();
+  }, [selectedProvider]);
+
+  // Fetch review counts when providers list changes
+  useEffect(() => {
+    const fetchReviewData = async () => {
+      if (!providers.length) return;
+      
+      const counts = {};
+      const ratings = {};
+      
+      // Create a promise for each provider to fetch their reviews
+      const reviewPromises = providers.map(async (provider) => {
+        try {
+          const response = await publicAPI.getProviderReviews(provider.providerID);
+          const reviews = response.data || [];
+          
+          // Store the count
+          counts[provider.providerID] = reviews.length;
+          
+          // Calculate average rating from actual reviews
+          if (reviews.length > 0) {
+            const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+            ratings[provider.providerID] = (totalRating / reviews.length).toFixed(1);
+          } else {
+            ratings[provider.providerID] = "0.0";
+          }
+          
+        } catch (err) {
+          console.error(`Failed to fetch reviews for provider ${provider.providerID}:`, err);
+          counts[provider.providerID] = 0;
+          ratings[provider.providerID] = "0.0";
+        }
+      });
+      
+      // Wait for all promises to complete
+      await Promise.all(reviewPromises);
+      
+      setProviderReviewCounts(counts);
+      setProviderReviewRatings(ratings);
+    };
+    
+    fetchReviewData();
+  }, [providers]);
+
+  // Keep your existing RatingStars component
   const RatingStars = ({ rating }) => (
     <div className="flex">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -114,61 +185,20 @@ const CustomerProviders = () => {
     </div>
   );
 
-  const getProviderServices = (providerId) => [
-    {
-      id: 1,
-      name: "Full Service",
-      description: "Comprehensive service package including inspection and maintenance",
-      price: 1299.99,
-      duration: "3 hours"
-    },
-    {
-      id: 2,
-      name: "Quick Service",
-      description: "Basic maintenance and quick inspection",
-      price: 599.99,
-      duration: "1 hour"
-    },
-    {
-      id: 3,
-      name: "Diagnostic Check",
-      description: "Complete system diagnostic scan",
-      price: 399.99,
-      duration: "45 minutes"
-    }
-  ];
-
-  const getProviderReviews = (providerId) => [
-    {
-      id: 1,
-      customerName: "John D.",
-      rating: 5,
-      comment: "Excellent service! Very professional and quick turnaround time.",
-      date: "2024-03-15",
-      serviceType: "Full Service"
-    },
-    {
-      id: 2,
-      customerName: "Sarah M.",
-      rating: 4,
-      comment: "Good work, although slightly delayed. Quality was great though.",
-      date: "2024-03-10",
-      serviceType: "Quick Service"
-    },
-    {
-      id: 3,
-      customerName: "David K.",
-      rating: 5,
-      comment: "Very thorough and explained everything clearly. Will use again!",
-      date: "2024-03-05",
-      serviceType: "Diagnostic Check"
-    }
-  ];
-
+  // Update the provider profile modal to use real data
   const ProviderProfileModal = ({ provider, onClose }) => {
     const [activeTab, setActiveTab] = useState('services');
-    const services = getProviderServices(provider.providerID);
-    const reviews = getProviderReviews(provider.providerID);
+    
+    // Add these state variables inside the ProviderProfileModal component:
+    const [servicesPerPage] = useState(6);
+    const [currentServicePage, setCurrentServicePage] = useState(1);
+    const [reviewsPerPage] = useState(4);
+    const [currentReviewPage, setCurrentReviewPage] = useState(1);
+    
+    // Calculate actual average rating from fetched reviews
+    const calculatedRating = providerReviews.length > 0
+      ? (providerReviews.reduce((sum, review) => sum + (review.rating || 0), 0) / providerReviews.length).toFixed(1)
+      : provider.rating || "0.0";
 
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -187,12 +217,15 @@ const CustomerProviders = () => {
             </button>
 
             {/* Provider info */}
-            <div className="px-6 pt-6 pb-4">
+            <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/20 dark:to-transparent">
               <div className="flex items-start space-x-4">
                 <img
-                  src={provider.picUrl}
+                  src={provider.profilePicUrl || "/src/assets/images/hero/repair-2.jpg"}
                   alt={provider.businessName}
-                  className="h-24 w-24 rounded-lg object-cover"
+                  className="h-24 w-24 rounded-lg object-cover shadow-md ring-2 ring-white dark:ring-slate-700"
+                  onError={(e) => {
+                    e.target.src = "/src/assets/images/hero/repair-2.jpg"; // Fallback image
+                  }}
                 />
                 <div>
                   <div className="flex items-center space-x-2">
@@ -208,9 +241,9 @@ const CustomerProviders = () => {
                   </p>
                   <div className="mt-2 flex items-center space-x-4">
                     <div className="flex items-center">
-                      <RatingStars rating={provider.rating} />
+                      <RatingStars rating={parseFloat(calculatedRating)} />
                       <span className="ml-2 text-sm text-gray-500 dark:text-slate-400">
-                        ({provider.totalReviews} reviews)
+                        ({providerReviews.length} reviews • {calculatedRating} stars)
                       </span>
                     </div>
                     <div className="flex items-center text-sm text-gray-500 dark:text-slate-400">
@@ -218,164 +251,469 @@ const CustomerProviders = () => {
                       {provider.location}
                     </div>
                   </div>
+                  {provider.about && (
+                    <p className="mt-2 text-sm text-gray-600 dark:text-slate-400 line-clamp-2 max-w-lg">
+                      {provider.about}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="border-t border-gray-200 dark:border-slate-700">
-              <div className="flex">
+            <div className="border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+              <div className="flex overflow-x-auto scrollbar-hide">
                 <button
                   onClick={() => setActiveTab('services')}
-                  className={`px-6 py-3 text-sm font-medium ${
+                  className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                     activeTab === 'services'
                       ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                       : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300'
                   }`}
                 >
-                  Services
+                  <span className="flex items-center">
+                    <svg className="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Services {providerServices.length > 0 && <span className="ml-1 rounded-full bg-gray-100 dark:bg-slate-700 px-2 py-0.5 text-xs">{providerServices.length}</span>}
+                  </span>
                 </button>
                 <button
                   onClick={() => setActiveTab('reviews')}
-                  className={`px-6 py-3 text-sm font-medium ${
+                  className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                     activeTab === 'reviews'
                       ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                       : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300'
                   }`}
                 >
-                  Reviews
+                  <span className="flex items-center">
+                    <StarIcon className="mr-2 h-5 w-5" />
+                    Reviews {providerReviews.length > 0 && <span className="ml-1 rounded-full bg-gray-100 dark:bg-slate-700 px-2 py-0.5 text-xs">{providerReviews.length}</span>}
+                  </span>
                 </button>
                 <button
                   onClick={() => setActiveTab('about')}
-                  className={`px-6 py-3 text-sm font-medium ${
+                  className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                     activeTab === 'about'
                       ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                       : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300'
                   }`}
                 >
-                  About
+                  <span className="flex items-center">
+                    <svg className="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    About
+                  </span>
                 </button>
               </div>
             </div>
 
             {/* Tab content */}
             <div className="p-6">
-              {activeTab === 'services' ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      className="rounded-lg border border-gray-200 p-4 dark:border-slate-700"
-                    >
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {service.name}
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                        {service.description}
-                      </p>
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-500 dark:text-slate-400">
-                          <ClockIcon className="mr-1.5 h-5 w-5" />
-                          {service.duration}
-                        </div>
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {formatCurrency(service.price)}
-                        </div>
+              {isLoadingDetails ? (
+                <div className="p-6 space-y-4">
+                  <div className="animate-pulse space-y-6">
+                    {activeTab === 'services' ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div key={i} className="rounded-lg border border-gray-200 p-4 dark:border-slate-700">
+                            <div className="h-5 w-2/3 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            <div className="mt-2 h-3 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            <div className="mt-1 h-3 w-3/4 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            <div className="mt-4 flex items-center justify-between">
+                              <div className="h-4 w-16 bg-gray-200 rounded dark:bg-slate-700"></div>
+                              <div className="h-4 w-12 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            </div>
+                            <div className="mt-3 h-8 bg-gray-200 rounded dark:bg-slate-700"></div>
+                          </div>
+                        ))}
                       </div>
-                      <button
-                        onClick={() => handleServiceBook(service)}
-                        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-                      >
-                        Book Now
-                      </button>
+                    ) : activeTab === 'reviews' ? (
+                      <>
+                        <div className="rounded-lg border border-gray-200 p-5 dark:border-slate-700">
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="flex flex-col items-center sm:items-start">
+                              <div className="h-10 w-16 bg-gray-200 rounded dark:bg-slate-700"></div>
+                              <div className="mt-2 h-4 w-24 bg-gray-200 rounded dark:bg-slate-700"></div>
+                              <div className="mt-1 h-3 w-32 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            </div>
+                            <div className="w-full sm:w-auto flex-1 max-w-xs space-y-2">
+                              {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className="flex items-center mt-2">
+                                  <div className="w-7 h-3 bg-gray-200 rounded dark:bg-slate-700"></div>
+                                  <div className="w-48 h-2 mx-2 bg-gray-200 rounded dark:bg-slate-700"></div>
+                                  <div className="w-4 h-3 bg-gray-200 rounded dark:bg-slate-700"></div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {[1, 2].map(i => (
+                          <div key={i} className="rounded-lg border border-gray-200 p-4 dark:border-slate-700">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="h-5 w-32 bg-gray-200 rounded dark:bg-slate-700"></div>
+                                <div className="mt-1 h-3 w-48 bg-gray-200 rounded dark:bg-slate-700"></div>
+                              </div>
+                              <div className="h-3 w-16 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            </div>
+                            <div className="mt-3 h-12 bg-gray-200 rounded dark:bg-slate-700"></div>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="rounded-lg border border-gray-200 p-5 dark:border-slate-700">
+                            <div className="h-6 w-32 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            <div className="mt-4 h-4 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            <div className="mt-2 h-4 w-3/4 bg-gray-200 rounded dark:bg-slate-700"></div>
+                            <div className="mt-2 h-4 w-1/2 bg-gray-200 rounded dark:bg-slate-700"></div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : activeTab === 'services' ? (
+                <div className="space-y-6">
+                  {providerServices.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-slate-400">
+                      No services available for this provider.
                     </div>
-                  ))}
+                  ) : (
+                    <>
+                      {/* Service grid with pagination */}
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {providerServices
+                          .slice((currentServicePage - 1) * servicesPerPage, currentServicePage * servicesPerPage)
+                          .map((service) => (
+                            <div
+                              key={service.serviceID}
+                              data-service-card
+                              className="rounded-lg border border-gray-200 p-4 dark:border-slate-700 transition-all"
+                            >
+                              <h3 className="font-medium text-gray-900 dark:text-white">
+                                {service.serviceName}
+                              </h3>
+                              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400 line-clamp-2">
+                                {service.description}
+                              </p>
+                              <div className="mt-4 flex items-center justify-between">
+                                <div className="flex items-center text-sm text-gray-500 dark:text-slate-400">
+                                  <ClockIcon className="mr-1.5 h-5 w-5" />
+                                  {service.duration}
+                                </div>
+                                <div className="font-medium text-gray-900 dark:text-white">
+                                  {formatCurrency(service.price)}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleServiceBook(service)}
+                                className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                              >
+                                Book Now
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Pagination controls - only show if multiple pages */}
+                      {providerServices.length > servicesPerPage && (
+                        <div className="flex justify-center mt-6 space-x-2">
+                          <button
+                            onClick={() => setCurrentServicePage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentServicePage === 1}
+                            className="px-3 py-1 rounded-md bg-gray-100 text-gray-700 disabled:opacity-50 dark:bg-slate-700 dark:text-slate-300"
+                          >
+                            &lt;
+                          </button>
+                          
+                          <span className="px-3 py-1 text-sm text-gray-600 dark:text-slate-300">
+                            Page {currentServicePage} of {Math.ceil(providerServices.length / servicesPerPage)}
+                          </span>
+                          
+                          <button
+                            onClick={() => setCurrentServicePage(prev => 
+                              Math.min(prev + 1, Math.ceil(providerServices.length / servicesPerPage))
+                            )}
+                            disabled={currentServicePage === Math.ceil(providerServices.length / servicesPerPage)}
+                            className="px-3 py-1 rounded-md bg-gray-100 text-gray-700 disabled:opacity-50 dark:bg-slate-700 dark:text-slate-300"
+                          >
+                            &gt;
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               ) : activeTab === 'reviews' ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Reviews Summary */}
-                  <div className="mb-6 flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-slate-700">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                          {provider.rating}
+                  <div className="mb-6 rounded-lg border border-gray-200 p-5 dark:border-slate-700">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex flex-col items-center sm:items-start">
+                        <div className="text-4xl font-bold text-gray-900 dark:text-white">
+                          {calculatedRating}
                         </div>
-                        <RatingStars rating={provider.rating} />
+                        <div className="mt-2">
+                          <RatingStars rating={parseFloat(calculatedRating)} />
+                        </div>
                         <div className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                          {provider.totalReviews} reviews
+                          Based on {providerReviews.length} {providerReviews.length === 1 ? 'review' : 'reviews'}
                         </div>
+                      </div>
+                      
+                      {/* Rating breakdown */}
+                      <div className="w-full sm:w-auto flex-1 max-w-xs">
+                        {[5, 4, 3, 2, 1].map(star => {
+                          const count = providerReviews.filter(review => Math.round(review.rating) === star).length;
+                          const percentage = providerReviews.length ? Math.round((count / providerReviews.length) * 100) : 0;
+                          
+                          return (
+                            <div key={star} className="flex items-center mt-2">
+                              <span className="w-7 text-sm text-gray-600 dark:text-slate-400">{star}</span>
+                              <div className="w-48 h-2 mx-2 bg-gray-200 rounded dark:bg-slate-700">
+                                <div 
+                                  className="h-2 bg-yellow-400 rounded" 
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-gray-600 dark:text-slate-400">{count}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
-
-                  {/* Reviews List */}
-                  {reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="rounded-lg border border-gray-200 p-4 dark:border-slate-700"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-white">
-                            {review.customerName}
-                          </div>
-                          <div className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                            {review.serviceType}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-slate-400">
-                          {review.date}
-                        </div>
+              
+                  {/* Reviews List with Pagination */}
+                  {providerReviews.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-slate-400">
+                      <div className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
                       </div>
-                      <div className="mt-2">
-                        <RatingStars rating={review.rating} />
-                      </div>
-                      <p className="mt-2 text-gray-600 dark:text-slate-300">
-                        {review.comment}
-                      </p>
+                      <h3 className="text-lg font-medium">No reviews yet</h3>
+                      <p>Be the first to review this service provider</p>
                     </div>
-                  ))}
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        {providerReviews
+                          .slice((currentReviewPage - 1) * reviewsPerPage, currentReviewPage * reviewsPerPage)
+                          .map((review) => (
+                            <div
+                              key={review.reviewID}
+                              className="rounded-lg border border-gray-200 p-4 dark:border-slate-700"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <div className="font-medium text-gray-900 dark:text-white">
+                                    {review.customerName || "Verified Customer"}
+                                  </div>
+                                  <div className="mt-1 text-sm text-gray-500 dark:text-slate-400 flex items-center">
+                                    <span className="mr-3">{review.serviceType || "Service"}</span>
+                                    <span className="flex items-center">
+                                      <RatingStars rating={review.rating || 0} />
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-slate-400">
+                                  {review.createdAt ? format(new Date(review.createdAt), 'MMM dd, yyyy') : ""}
+                                </div>
+                              </div>
+                              <p className="mt-3 text-gray-600 dark:text-slate-300">
+                                {review.comment || "No comment provided."}
+                              </p>
+                            </div>
+                          ))}
+                      </div>
+              
+                      {/* Pagination for reviews */}
+                      {providerReviews.length > reviewsPerPage && (
+                        <div className="flex justify-center mt-6 space-x-2">
+                          <button
+                            onClick={() => setCurrentReviewPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentReviewPage === 1}
+                            className="px-3 py-1 rounded-md bg-gray-100 text-gray-700 disabled:opacity-50 dark:bg-slate-700 dark:text-slate-300"
+                          >
+                            &lt;
+                          </button>
+                          
+                          <span className="px-3 py-1 text-sm text-gray-600 dark:text-slate-300">
+                            Page {currentReviewPage} of {Math.ceil(providerReviews.length / reviewsPerPage)}
+                          </span>
+                          
+                          <button
+                            onClick={() => setCurrentReviewPage(prev => 
+                              Math.min(prev + 1, Math.ceil(providerReviews.length / reviewsPerPage))
+                            )}
+                            disabled={currentReviewPage === Math.ceil(providerReviews.length / reviewsPerPage)}
+                            className="px-3 py-1 rounded-md bg-gray-100 text-gray-700 disabled:opacity-50 dark:bg-slate-700 dark:text-slate-300"
+                          >
+                            &gt;
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-gray-200 p-4 dark:border-slate-700">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
+              ) : activeTab === 'about' ? (
+                <div className="space-y-6">
+                  {/* About section with better layout and icons */}
+                  <div className="rounded-lg border border-gray-200 p-5 dark:border-slate-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                      <svg className="h-5 w-5 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      About {provider.businessName}
+                    </h3>
+                    <div className="mt-4 text-gray-600 dark:text-slate-300 whitespace-pre-wrap prose max-w-none dark:prose-invert">
+                      {provider.about ? (
+                        <p>{provider.about}</p>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500 dark:text-slate-400">
+                          <p>No information provided by this service provider.</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {provider.verified && (
+                      <div className="mt-4 flex items-center p-3 bg-blue-50 rounded-md dark:bg-blue-900/20">
+                        <CheckBadgeIcon className="h-5 w-5 text-blue-500 mr-2" />
+                        <p className="text-sm text-blue-700 dark:text-blue-400">
+                          This provider has been verified by RepairLink, ensuring reliability and quality service.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Business hours section with improved layout */}
+                  <div className="rounded-lg border border-gray-200 p-5 dark:border-slate-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                      <ClockIcon className="h-5 w-5 mr-2 text-blue-500" />
                       Business Hours
                     </h3>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
-                      Monday - Friday: 8:00 AM - 5:00 PM<br />
-                      Saturday: 9:00 AM - 2:00 PM<br />
-                      Sunday: Closed
-                    </p>
+                    <div className="mt-4">
+                      {provider.businessHours ? (
+                        <pre className="text-sm text-gray-600 dark:text-slate-300 whitespace-pre-line font-sans">
+                          {provider.businessHours}
+                        </pre>
+                      ) : (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium">Monday - Friday</span>
+                            <span>8:00 AM - 5:00 PM</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Saturday</span>
+                            <span>9:00 AM - 2:00 PM</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Sunday</span>
+                            <span>Closed</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="rounded-lg border border-gray-200 p-4 dark:border-slate-700">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
+                  
+                  {/* Contact information section with better formatting */}
+                  <div className="rounded-lg border border-gray-200 p-5 dark:border-slate-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                      <svg className="h-5 w-5 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
                       Contact Information
                     </h3>
-                    <div className="mt-2 space-y-2 text-sm text-gray-500 dark:text-slate-400">
-                      <div className="flex items-center">
-                        <PhoneIcon className="mr-2 h-5 w-5" />
-                        +27 11 234 5678
+                    <div className="mt-4 space-y-4">
+                      <div className="flex items-start">
+                        <PhoneIcon className="h-5 w-5 mr-3 text-gray-500 dark:text-slate-400 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">Phone</div>
+                          <a 
+                            href={`tel:${provider.phoneNumber?.replace(/\s/g, '')}`} 
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {provider.phoneNumber || "Contact information not available"}
+                          </a>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <MapPinIcon className="mr-2 h-5 w-5" />
-                        {provider.location}
+                      <div className="flex items-start">
+                        <MapPinIcon className="h-5 w-5 mr-3 text-gray-500 dark:text-slate-400 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">Location</div>
+                          <p className="text-gray-600 dark:text-slate-300">
+                            {provider.location || "Location not specified"}
+                          </p>
+                          {provider.location && (
+                            <a 
+                              href={`https://maps.google.com/?q=${encodeURIComponent(provider.location)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 hover:underline text-sm mt-1 inline-block"
+                            >
+                              View on Google Maps
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              ) : (
+                // Other tabs...
+                null
               )}
             </div>
 
             {/* Action buttons */}
-            <div className="border-t border-gray-200 px-6 py-4 dark:border-slate-700">
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={onClose}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
-                >
-                  Close
-                </button>
+            <div className="border-t border-gray-200 px-6 py-4 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+              <div className="flex justify-between items-center">
+                {activeTab === 'services' && providerServices.length > 0 ? (
+                  <div className="text-sm text-gray-500 dark:text-slate-400">
+                    {providerServices.length} {providerServices.length === 1 ? 'service' : 'services'} available
+                  </div>
+                ) : activeTab === 'reviews' ? (
+                  <div className="text-sm text-gray-500 dark:text-slate-400">
+                    {calculatedRating} out of 5 stars from {providerReviews.length} {providerReviews.length === 1 ? 'review' : 'reviews'}
+                  </div>
+                ) : (
+                  <div></div>
+                )}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={onClose}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Close
+                  </button>
+                  {activeTab === 'services' && providerServices.length > 0 && (
+                    <button
+                      onClick={() => {
+                        // Scroll to the top of the services tab and set a visual indicator on the first service card
+                        const firstService = document.querySelector('[data-service-card]');
+                        if (firstService) {
+                          firstService.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          firstService.classList.add('ring-2', 'ring-blue-500');
+                          setTimeout(() => {
+                            firstService.classList.remove('ring-2', 'ring-blue-500');
+                          }, 1500);
+                        }
+                      }}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors flex items-center"
+                    >
+                      <svg className="mr-1.5 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Book a Service
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -384,9 +722,34 @@ const CustomerProviders = () => {
     );
   };
 
+  // Booking Modal - Update to use backend
   const BookingModal = ({ provider, service, onClose }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+    
+    // Fetch available time slots when date changes
+    useEffect(() => {
+      if (!bookingData.date || !service) return;
+      
+      const fetchTimeSlots = async () => {
+        try {
+          // Use your API to get available time slots
+          const response = await customerAPI.getAvailableTimeSlots(
+            service.serviceID,
+            bookingData.date
+          );
+          
+          setAvailableTimeSlots(response.data || []);
+        } catch (err) {
+          console.error("Failed to fetch available time slots:", err);
+          setAvailableTimeSlots([]);
+          // Optional: Show error to user
+        }
+      };
+      
+      fetchTimeSlots();
+    }, [service, bookingData.date]);
 
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -394,20 +757,21 @@ const CustomerProviders = () => {
       setIsSubmitting(true);
 
       try {
-        // Add your API call here
-        // const response = await api.post('/bookings', {
-        //   providerId: provider.providerID,
-        //   serviceId: service.id,
-        //   ...bookingData
-        // });
-
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Create booking through API
+        await customerAPI.createBooking({
+          serviceID: service.serviceID,
+          scheduledDate: `${bookingData.date}T${bookingData.time}:00`,
+          notes: bookingData.notes
+        });
         
+        // Show success message
+        toast.success('Booking created successfully!');
         onClose();
-        // Add success notification here
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to create booking');
+        console.error("Booking failed:", err);
+        const errorMessage = err.response?.data?.message || 'Failed to create booking';
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setIsSubmitting(false);
       }
@@ -430,7 +794,7 @@ const CustomerProviders = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="font-medium text-gray-900 dark:text-white">
-                          {service.name}
+                          {service.serviceName}
                         </h4>
                         <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
                           {provider.businessName}
@@ -456,13 +820,13 @@ const CustomerProviders = () => {
                       type="date"
                       min={format(new Date(), 'yyyy-MM-dd')}
                       value={bookingData.date}
-                      onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
+                      onChange={(e) => setBookingData({ ...bookingData, date: e.target.value, time: '' })}
                       required
                       className="mt-1 block w-full rounded-lg border border-gray-300 p-2.5 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                     />
                   </div>
 
-                  {/* Time Selection */}
+                  {/* Time Selection - Use available slots from backend */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
                       Time
@@ -471,18 +835,25 @@ const CustomerProviders = () => {
                       value={bookingData.time}
                       onChange={(e) => setBookingData({ ...bookingData, time: e.target.value })}
                       required
-                      className="mt-1 block w-full rounded-lg border border-gray-300 p-2.5 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                      disabled={!bookingData.date || availableTimeSlots.length === 0}
+                      className="mt-1 block w-full rounded-lg border border-gray-300 p-2.5 dark:border-slate-600 dark:bg-slate-700 dark:text-white disabled:opacity-60"
                     >
                       <option value="">Select a time</option>
-                      <option value="09:00">09:00 AM</option>
-                      <option value="10:00">10:00 AM</option>
-                      <option value="11:00">11:00 AM</option>
-                      <option value="12:00">12:00 PM</option>
-                      <option value="13:00">01:00 PM</option>
-                      <option value="14:00">02:00 PM</option>
-                      <option value="15:00">03:00 PM</option>
-                      <option value="16:00">04:00 PM</option>
+                      {availableTimeSlots.map(slot => (
+                        <option key={slot} value={slot}>
+                          {new Date(`2000-01-01T${slot}`).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </option>
+                      ))}
                     </select>
+                    
+                    {bookingData.date && availableTimeSlots.length === 0 && (
+                      <p className="mt-1 text-sm text-yellow-600 dark:text-yellow-400">
+                        No available times for this date. Please select another date.
+                      </p>
+                    )}
                   </div>
 
                   {/* Notes */}
@@ -500,8 +871,9 @@ const CustomerProviders = () => {
                   </div>
 
                   {error && (
-                    <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                      {error}
+                    <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400 flex items-center">
+                      <ExclamationCircleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
+                      <span>{error}</span>
                     </div>
                   )}
                 </div>
@@ -518,7 +890,7 @@ const CustomerProviders = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !bookingData.date || !bookingData.time}
                     className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
                   >
                     {isSubmitting ? 'Booking...' : 'Confirm Booking'}
@@ -532,6 +904,7 @@ const CustomerProviders = () => {
     );
   };
 
+  // Keep your existing handler functions
   const handleViewProfile = (provider) => {
     setSelectedProvider(provider);
     setShowProfileModal(true);
@@ -548,6 +921,29 @@ const CustomerProviders = () => {
     setShowBookingModal(true);
   };
 
+  // Filter providers on the client-side as backup
+  const filteredProviders = providers.filter(provider => {
+    // Case-insensitive search
+    const searchMatch = filters.search === '' || 
+      (provider.businessName && provider.businessName.toLowerCase().includes(filters.search.toLowerCase())) ||
+      (provider.serviceCategory && provider.serviceCategory.toLowerCase().includes(filters.search.toLowerCase())) ||
+      (provider.location && provider.location.toLowerCase().includes(filters.search.toLowerCase()));
+    
+    // Category filter
+    const categoryMatch = filters.category === 'all' || 
+      (provider.serviceCategory && provider.serviceCategory.toLowerCase() === filters.category.toLowerCase());
+    
+    // Rating filter
+    const ratingMatch = filters.rating === 'all' || 
+      (provider.rating && provider.rating >= parseInt(filters.rating));
+    
+    // Location filter
+    const locationMatch = filters.location === 'all' ||
+      (provider.location && provider.location.toLowerCase().includes(filters.location.toLowerCase()));
+    
+    return searchMatch && categoryMatch && ratingMatch && locationMatch;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -557,7 +953,7 @@ const CustomerProviders = () => {
         </h1>
         <button
           onClick={() => document.getElementById('filters').classList.toggle('hidden')}
-          className="mt-4 inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 mr-14 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 sm:mt-0"
+          className="mt-4 inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 sm:mt-0"
         >
           <AdjustmentsHorizontalIcon className="mr-2 h-5 w-5" />
           Filters
@@ -584,12 +980,11 @@ const CustomerProviders = () => {
             className="rounded-lg border border-gray-300 px-4 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
           >
             <option value="all">All Categories</option>
-            <option value="automotive">Automotive</option>
-            <option value="electrical">Electrical</option>
-            <option value="plumbing">Plumbing</option>
-            <option value="security">Security</option>
-            <option value="landscaping">Landscaping</option>
-            <option value="construction">Construction</option>
+            {categories.map(category => (
+              <option key={category} value={category.toLowerCase()}>
+                {category}
+              </option>
+            ))}
           </select>
 
           <select
@@ -609,35 +1004,67 @@ const CustomerProviders = () => {
             className="rounded-lg border border-gray-300 px-4 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
           >
             <option value="all">All Locations</option>
-            <option value="sandton">Sandton</option>
-            <option value="rosebank">Rosebank</option>
-            <option value="braamfontein">Braamfontein</option>
-            <option value="fourways">Fourways</option>
-            <option value="morningside">Morningside</option>
-            <option value="midrand">Midrand</option>
+            {locations.map(location => (
+              <option key={location} value={location.toLowerCase()}>
+                {location}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+          <p className="flex items-center">
+            <ExclamationCircleIcon className="h-5 w-5 mr-2" />
+            {error}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-2 text-sm font-medium text-red-700 underline dark:text-red-400"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {/* Providers Grid */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
-          <div className="col-span-full text-center">Loading...</div>
-        ) : providers.length === 0 ? (
-          <div className="col-span-full text-center text-gray-500 dark:text-slate-400">
-            No service providers found.
+          <div className="col-span-full flex justify-center py-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : filteredProviders.length === 0 ? (
+          <div className="col-span-full text-center py-10">
+            <div className="mx-auto h-12 w-12 text-gray-400 mb-3">
+              <MagnifyingGlassIcon className="h-12 w-12" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No providers found</h3>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">
+              Try adjusting your search or filters to find what you're looking for.
+            </p>
+            <button
+              onClick={() => setFilters({ search: '', category: 'all', rating: 'all', location: 'all' })}
+              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40"
+            >
+              Clear filters
+            </button>
           </div>
         ) : (
-          providers.map((provider) => (
+          filteredProviders.map((provider) => (
             <div
               key={provider.providerID}
               className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
             >
               <div className="aspect-w-16 aspect-h-9">
                 <img
-                  src={provider.picUrl || '/images/provider-placeholder.jpg'}
+                  src={provider.profilePicUrl || '/src/assets/images/hero/repair-2.jpg'}
                   alt={provider.businessName}
                   className="h-48 w-full object-cover"
+                  onError={(e) => {
+                    e.target.src = "/src/assets/images/hero/repair-2.jpg"; // Fallback image
+                  }}
                 />
               </div>
               
@@ -659,9 +1086,9 @@ const CustomerProviders = () => {
                 </div>
 
                 <div className="mt-4 flex items-center space-x-2">
-                  <RatingStars rating={provider.rating || 0} />
+                  <RatingStars rating={parseFloat(providerReviewRatings[provider.providerID] || provider.rating || 0)} />
                   <span className="text-sm text-gray-500 dark:text-slate-400">
-                    ({provider.totalReviews || 0} reviews)
+                    ({providerReviewCounts[provider.providerID] || 0} reviews • {providerReviewRatings[provider.providerID] || provider.rating || 0} stars)
                   </span>
                 </div>
 
@@ -669,6 +1096,13 @@ const CustomerProviders = () => {
                   <MapPinIcon className="mr-1.5 h-5 w-5 flex-shrink-0" />
                   {provider.location}
                 </div>
+
+                {/* Add this preview of the about text */}
+                {provider.about && (
+                  <p className="mt-3 text-sm text-gray-600 dark:text-slate-400 line-clamp-2">
+                    {provider.about}
+                  </p>
+                )}
 
                 <div className="mt-6">
                   <Link
@@ -694,6 +1128,8 @@ const CustomerProviders = () => {
           onClose={() => {
             setShowProfileModal(false);
             setSelectedProvider(null);
+            setProviderServices([]);
+            setProviderReviews([]);
           }}
         />
       )}
@@ -704,7 +1140,6 @@ const CustomerProviders = () => {
           service={selectedService}
           onClose={() => {
             setShowBookingModal(false);
-            setSelectedProvider(null);
             setSelectedService(null);
             setBookingData({ date: '', time: '', notes: '' });
           }}

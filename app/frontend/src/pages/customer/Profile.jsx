@@ -5,14 +5,18 @@ import {
   PhoneIcon,
   KeyIcon,
   PhotoIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  PencilIcon,
+  XMarkIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import ChangePasswordForm from '../../components/shared/ChangePasswordForm';
 import { useAuth } from '../../contexts/auth/AuthContext';
-import { customerAPI, userAPI } from '../../services'; // Import the API services instead of axios
+import { customerAPI, userAPI } from '../../services';
+import { toast } from 'react-hot-toast';
 
 const CustomerProfile = () => {
-  const { user } = useAuth(); // Get user from auth context
+  const { user } = useAuth();
   
   const [profile, setProfile] = useState({
     name: '',
@@ -20,327 +24,488 @@ const CustomerProfile = () => {
     email: '',
     phoneNumber: '',
     roles: [],
+    userID: null,
     picUrl: "/src/assets/images/hero/repair-3.jpg"
   });
+  
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    surname: '',
+    phoneNumber: '',
+  });
+  
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('Your profile has been successfully updated.');
 
-  useEffect(() => {
-    // Fetch user profile data
-    const fetchProfile = async () => {
-      try {
-        setIsLoading(true);
-        
-        console.log("Auth context user data:", user);
-        
-        // Try to get profile from API first
-        try {
-          console.log("Fetching profile from API");
-          // Try customer API first, then fall back to generic user API if needed
-          const response = await customerAPI.getProfile()
-            .catch(() => userAPI.getProfile()); // Fallback to userAPI if customerAPI fails
-          
-          console.log("API response:", response.data);
-          const userData = response.data;
-          setProfile({
-            name: userData.name || '',
-            surname: userData.surname || '',
-            email: userData.email || '',
-            phoneNumber: userData.phoneNumber || '',
-            roles: userData.roles || [],
-            picUrl: userData.picUrl || "/src/assets/images/hero/repair-3.jpg"
-          });
-        } catch (apiError) {
-          console.error("API call failed, using auth context data:", apiError);
-          
-          // Use user data from auth context if API fails
-          if (user) {
-            console.log("Setting profile from auth context:", user);
-            setProfile({
-              name: user.name || '',
-              surname: user.surname || '',
-              email: user.email || '',
-              phoneNumber: user.phoneNumber || '',
-              roles: user.roles || [],
-              picUrl: user.picUrl || "/src/assets/images/hero/repair-3.jpg"
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchProfile();
-  }, [user]);
-
-  // Fix for the getUserRole function
+  // Function to get user role for display purposes
   const getUserRole = () => {
-    // If no roles, return default
-    if (!profile.roles || profile.roles.length === 0) return "User";
-    
-    // Get the first role (could be a string or an object)
-    const roleObj = profile.roles[0];
-    
-    // Handle different formats of role data
-    let roleValue;
-    
-    if (typeof roleObj === 'string') {
-      // If role is directly a string like "ROLE_CUSTOMER"
-      roleValue = roleObj;
-    } else if (roleObj && typeof roleObj === 'object') {
-      // If role is an object like { authority: "ROLE_CUSTOMER" } or similar
-      roleValue = roleObj.authority || roleObj.role || roleObj.name || Object.values(roleObj)[0];
-    } else {
-      // Fallback if we can't determine the role
-      return "User";
+    if (profile.roles && profile.roles.length > 0) {
+      const role = profile.roles[0].authority || profile.roles[0];
+      return role.replace('ROLE_', '');
     }
-    
-    // Now we can safely use roleValue
-    if (roleValue === "ROLE_VENDOR") return "Service Provider";
-    if (roleValue === "ROLE_CUSTOMER") return "Customer";
-    if (roleValue === "ROLE_ADMIN") return "Administrator";
-    
-    // Make sure roleValue is a string before using replace
-    if (typeof roleValue === 'string' && roleValue.includes("ROLE_")) {
-      // Remove ROLE_ prefix and capitalize
-      return roleValue.replace("ROLE_", "").charAt(0).toUpperCase() + 
-             roleValue.replace("ROLE_", "").slice(1).toLowerCase();
-    }
-    
-    // If we get here, just return the role value or a default
-    return roleValue || "User";
+    return 'User';
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setUpdateError('');
-    setUpdateSuccess(false);
-    
+  useEffect(() => {
+    fetchProfile();
+  }, [user]);
+  
+  // Fetch user profile data
+  const fetchProfile = async () => {
     try {
-      // Use customerAPI to update profile
-      await customerAPI.updateProfile({
-        name: profile.name,
-        surname: profile.surname,
-        phoneNumber: profile.phoneNumber
-      });
+      setIsLoading(true);
+      
+      // Get email from auth context or localStorage
+      const userEmail = user?.email || JSON.parse(localStorage.getItem('user'))?.email;
+      
+      if (!userEmail) {
+        toast.error("Unable to fetch your profile. Please log in again.");
+        return;
+      }
+      
+      try {
+        const response = await userAPI.getUserByEmail(userEmail);
+        const userData = response.data;
+        
+        // Map the API data to profile state
+        const profileData = {
+          name: userData.name || '',
+          surname: userData.surname || '',
+          email: userData.email || '',
+          phoneNumber: userData.phoneNumber || '',
+          userID: userData.userID || null,
+          roles: userData.roleType ? [{ authority: `ROLE_${userData.roleType.roleType}` }] : [],
+          picUrl: userData.picUrl || "/src/assets/images/hero/repair-3.jpg"
+        };
+        
+        setProfile(profileData);
+        setEditFormData({
+          name: profileData.name,
+          surname: profileData.surname,
+          phoneNumber: profileData.phoneNumber,
+        });
+      } catch (apiError) {
+        toast.error("Failed to fetch profile data.");
+        
+        // Fall back to auth context data
+        if (user) {
+          const profileData = {
+            name: user.name || '',
+            surname: user.surname || '',
+            email: user.email || '',
+            phoneNumber: user.phoneNumber || '',
+            roles: user.roles || [],
+            picUrl: user.picUrl || "/src/assets/images/hero/repair-3.jpg"
+          };
+          
+          setProfile(profileData);
+          setEditFormData({
+            name: profileData.name,
+            surname: profileData.surname,
+            phoneNumber: profileData.phoneNumber,
+          });
+        }
+      }
+    } catch (error) {
+      toast.error("An error occurred while fetching your profile.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle input changes during editing
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Begin editing profile
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  // Cancel editing and revert changes
+  const handleCancel = () => {
+    setEditFormData({
+      name: profile.name,
+      surname: profile.surname,
+      phoneNumber: profile.phoneNumber
+    });
+    setIsEditing(false);
+    setUpdateError('');
+  };
+
+  // Submit profile updates
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setUpdateError('');
+      
+      if (!profile.userID) {
+        throw new Error("User ID not found");
+      }
+      
+      // Validate form data
+      if (!editFormData.name.trim()) {
+        throw new Error("Name is required");
+      }
+      
+      if (!editFormData.surname.trim()) {
+        throw new Error("Surname is required");
+      }
+      
+      if (!editFormData.phoneNumber.trim()) {
+        throw new Error("Phone number is required");
+      }
+      
+      // Create update payload
+      const updateData = {
+        name: editFormData.name,
+        surname: editFormData.surname,
+        phoneNumber: editFormData.phoneNumber,
+      };
+      
+      // Call API to update profile
+      const response = await userAPI.updateProfile(profile.userID, updateData);
+      
+      // Update local state with the new data
+      setProfile(prev => ({
+        ...prev,
+        name: editFormData.name,
+        surname: editFormData.surname,
+        phoneNumber: editFormData.phoneNumber,
+      }));
       
       setIsEditing(false);
+      setSuccessMessage('Profile updated successfully!');
       setUpdateSuccess(true);
+      toast.success('Profile updated successfully!');
       
       // Clear success message after 3 seconds
       setTimeout(() => {
         setUpdateSuccess(false);
       }, 3000);
+      
     } catch (error) {
-      console.error('Failed to update profile:', error);
-      setUpdateError('Failed to update profile. Please try again.');
+      setUpdateError(error.response?.data?.message || error.message || "Failed to update profile");
+      toast.error(error.response?.data?.message || error.message || "Failed to update profile");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleImageUpload = async (e) => {
+  // Handle uploading a profile picture
+  const handleProfilePicUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      try {
-        // Use customerAPI to upload profile picture
-        const response = await customerAPI.uploadProfilePicture(file);
-        
-        // Update profile with new image URL
-        if (response.data && response.data.picUrl) {
-          setProfile(prev => ({
-            ...prev,
-            picUrl: response.data.picUrl
-          }));
-        }
-      } catch (error) {
-        console.error('Failed to upload image:', error);
-        setUpdateError('Failed to upload image. Please try again.');
-      }
+    if (!file) return;
+
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Check file type
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      toast.error('Only JPG, JPEG and PNG images are supported.');
+      return;
+    }
+
+    try {
+      toast.loading('Uploading profile picture...');
+      const response = await userAPI.uploadProfilePicture(file);
+      toast.dismiss();
+      
+      setProfile(prev => ({
+        ...prev,
+        picUrl: response.data.url
+      }));
+      
+      toast.success('Profile picture updated successfully!');
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to upload profile picture');
     }
   };
 
+  // Toggle password change form visibility
+  const togglePasswordForm = () => {
+    setIsChangingPassword(prev => !prev);
+  };
+
+  // Handle password change submission
+  const handlePasswordChange = async (currentPassword, newPassword) => {
+    try {
+      await userAPI.changePassword(currentPassword, newPassword);
+      
+      // Close the password change modal
+      setIsChangingPassword(false);
+      
+      // Show success message using toast
+      toast.success('Password changed successfully!');
+      
+      // Show a success notification in the UI
+      setSuccessMessage('Your password has been changed successfully.');
+      setUpdateSuccess(true);
+      setTimeout(() => setUpdateSuccess(false), 5000); // Hide after 5 seconds
+      
+      return true;
+    } catch (error) {
+      // Extract the error message from the response
+      let errorMessage = 'Failed to change password';
+      
+      if (error.response) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      }
+      
+      // Show error toast
+      toast.error(errorMessage);
+      
+      // Return error object for the form to display
+      return {
+        success: false,
+        message: errorMessage
+      };
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          My Profile
-        </h1>
-        {isEditing ? (
+      {/* Profile header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+        {!isEditing ? (
           <button
-            onClick={handleSubmit}
-            disabled={isSaving}
-            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+            onClick={handleEdit}
+            className="px-4 py-2 mr-20 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
           >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 mr-14 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-          >
+            <PencilIcon className="w-4 h-4 mr-1" />
             Edit Profile
           </button>
+        ) : (
+          <div className="flex space-x-3 mr-20">
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 flex items-center dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              <XMarkIcon className="w-4 h-4 mr-1" />
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </span>
+              ) : (
+                <>
+                  <CheckIcon className="w-4 h-4 mr-1" />
+                  Save
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
-      
+
       {updateSuccess && (
-        <div className="rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
-          Profile updated successfully!
-        </div>
-      )}
-      
-      {updateError && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
-          {updateError}
+        <div className="bg-green-50 text-green-800 p-4 rounded-md flex items-start border border-green-200">
+          <CheckIcon className="h-5 w-5 mr-2 mt-0.5" />
+          <span>{successMessage}</span>
         </div>
       )}
 
-      {isLoading ? (
-        <div className="flex h-48 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+      {updateError && (
+        <div className="bg-red-50 text-red-800 p-4 rounded-md flex items-start border border-red-200">
+          <XMarkIcon className="h-5 w-5 mr-2 mt-0.5" />
+          <span>{updateError}</span>
         </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Profile Information */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-            <div className="mb-6 flex items-center space-x-4">
-              <div className="relative">
-                <img
-                  src={profile.picUrl}
-                  alt="Profile"
-                  className="h-20 w-20 rounded-full object-cover ring-4 ring-blue-100 dark:ring-blue-900"
+      )}
+
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Profile picture column */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-6 text-center dark:bg-gray-800 dark:border-gray-700">
+            <div className="relative inline-block">
+              {profile.picUrl ? (
+                <img 
+                  src={profile.picUrl} 
+                  alt="Profile" 
+                  className="h-32 w-32 mx-auto rounded-full object-cover border-2 border-gray-200"
                 />
-                {isEditing && (
-                  <label htmlFor="profile-image" className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-blue-600 p-1.5 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                    <PhotoIcon className="h-4 w-4" />
-                    <input
-                      type="file"
-                      id="profile-image"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
+              ) : (
+                <div className="h-32 w-32 mx-auto rounded-full bg-gray-200 flex items-center justify-center dark:bg-gray-700">
+                  <UserCircleIcon className="h-24 w-24 text-gray-400" />
+                </div>
+              )}
+              
+              <label 
+                htmlFor="profile-picture" 
+                className="absolute bottom-0 right-0 bg-blue-600 text-white p-1 rounded-full cursor-pointer hover:bg-blue-700"
+              >
+                <PhotoIcon className="h-5 w-5" />
+                <input 
+                  id="profile-picture" 
+                  type="file" 
+                  accept="image/jpeg,image/png,image/jpg" 
+                  onChange={handleProfilePicUpload} 
+                  className="sr-only"
+                />
+              </label>
+            </div>
+            
+            <h2 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">
+              {profile.name} {profile.surname}
+            </h2>
+            
+            <p className="text-gray-500 dark:text-gray-400 flex items-center justify-center mt-1">
+              <ShieldCheckIcon className="h-4 w-4 mr-1" />
+              {getUserRole()}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg border border-gray-200 p-6 dark:bg-gray-800 dark:border-gray-700">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Security</h3>
+            
+            <button
+              onClick={togglePasswordForm}
+              className="flex items-center w-full px-4 py-2 border border-gray-300 text-left text-gray-700 rounded-md hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              <KeyIcon className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
+              Change Password
+            </button>
+          </div>
+        </div>
+
+        {/* Profile details column */}
+        <div className="md:col-span-2">
+          <div className="bg-white rounded-lg border border-gray-200 p-6 dark:bg-gray-800 dark:border-gray-700">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-6">Profile Information</h3>
+            
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  First Name
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={editFormData.name}
+                    onChange={handleInputChange}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                ) : (
+                  <div className="flex items-center">
+                    <UserCircleIcon className="h-5 w-5 text-gray-400 mr-2" />
+                    <span className="text-gray-900 dark:text-white">{profile.name}</span>
+                  </div>
                 )}
               </div>
+              
+              {/* Surname */}
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {`${profile.name} ${profile.surname}`}
-                </h2>
-                <div className="flex items-center space-x-1">
-                  <ShieldCheckIcon className="h-4 w-4 text-blue-500" />
-                  <p className="text-sm text-gray-500 dark:text-slate-400">
-                    {getUserRole()}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {/* Name fields */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                  Full Name
+                <label htmlFor="surname" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Last Name
                 </label>
-                <div className="mt-1 flex items-center space-x-4">
+                {isEditing ? (
                   <input
                     type="text"
-                    disabled={!isEditing}
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
-                    placeholder="First Name"
+                    id="surname"
+                    name="surname"
+                    value={editFormData.surname}
+                    onChange={handleInputChange}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
-                  <input
-                    type="text"
-                    disabled={!isEditing}
-                    value={profile.surname}
-                    onChange={(e) => setProfile({ ...profile, surname: e.target.value })}
-                    className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
-                    placeholder="Last Name"
-                  />
-                </div>
+                ) : (
+                  <div className="flex items-center">
+                    <UserCircleIcon className="h-5 w-5 text-gray-400 mr-2" />
+                    <span className="text-gray-900 dark:text-white">{profile.surname}</span>
+                  </div>
+                )}
               </div>
-
-              {/* Contact Information */}
+              
+              {/* Email */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Email
                 </label>
-                <div className="mt-1 flex items-center">
-                  <span className="mr-2 text-gray-500 dark:text-slate-400">
-                    <EnvelopeIcon className="h-5 w-5" />
-                  </span>
-                  <input
-                    type="email"
-                    disabled={true} // Email should not be editable directly for security reasons
-                    value={profile.email}
-                    className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
-                    placeholder="email@example.com"
-                  />
+                <div className="flex items-center">
+                  <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-gray-900 dark:text-white">{profile.email}</span>
                 </div>
+                {isEditing && (
+                  <p className="text-xs text-gray-500 mt-1">Email address cannot be changed</p>
+                )}
               </div>
-
+              
+              {/* Phone Number */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Phone Number
                 </label>
-                <div className="mt-1 flex items-center">
-                  <span className="mr-2 text-gray-500 dark:text-slate-400">
-                    <PhoneIcon className="h-5 w-5" />
-                  </span>
+                {isEditing ? (
                   <input
                     type="tel"
-                    disabled={!isEditing}
-                    value={profile.phoneNumber}
-                    onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
-                    className="block w-full rounded-lg border border-gray-200 bg-white p-2.5 text-gray-900 disabled:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-900"
-                    placeholder="Phone Number"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    value={editFormData.phoneNumber}
+                    onChange={handleInputChange}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    placeholder="+27 12 345 6789"
                   />
-                </div>
-              </div>
-
-              {/* User Role Information */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
-                  Account Type
-                </label>
-                <div className="mt-1">
-                  <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-slate-700 dark:bg-slate-900">
-                    <ShieldCheckIcon className="mr-2 h-5 w-5 text-blue-500" />
-                    <span className="text-gray-900 dark:text-white">{getUserRole()}</span>
+                ) : (
+                  <div className="flex items-center">
+                    <PhoneIcon className="h-5 w-5 text-gray-400 mr-2" />
+                    <span className="text-gray-900 dark:text-white">{profile.phoneNumber}</span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Security Settings */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-            <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">
-              Security Settings
-            </h2>
-            
-            <div className="space-y-4">
-              <button
-                onClick={() => setIsChangingPassword(!isChangingPassword)}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
-              >
-                <KeyIcon className="mr-2 h-5 w-5" />
-                {isChangingPassword ? 'Cancel' : 'Change Password'}
-              </button>
-
-              {isChangingPassword && <ChangePasswordForm />}
-            </div>
+      {/* Password change form modal */}
+      {isChangingPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 dark:bg-gray-800">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Change Password</h3>
+            <ChangePasswordForm 
+              onSubmit={handlePasswordChange}
+              onCancel={() => setIsChangingPassword(false)}
+            />
           </div>
         </div>
       )}
