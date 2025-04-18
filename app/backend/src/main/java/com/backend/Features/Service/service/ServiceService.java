@@ -41,6 +41,13 @@ public class ServiceService {
         return mapToServiceResponse(savedService);
     }
 
+    public List<ServiceResponse> getAllServices() {
+        List<ServiceClass> services = serviceRepository.findAll();
+        return services.stream()
+                .map(this::mapToServiceResponse)
+                .collect(Collectors.toList());
+    }
+
     public ServiceResponse updateService(int id, ServiceRequest serviceRequest) {
         ServiceClass serviceClass = serviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Service not found"));
