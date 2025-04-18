@@ -35,4 +35,13 @@ public class CustomerController {
         }).toList();
         return ResponseEntity.ok(customerDTOs);
     }
+
+    @GetMapping("/user/{userID}")
+    public ResponseEntity<CustomerDTO> getCustomerByUserId(@PathVariable int userID) {
+        Customer customer = customerService.getCustomerByUserId(userID);
+        CustomerDTO customerDTO = new CustomerDTO();
+        customerDTO.setCustomerID(customer.getCustomerID());
+        customerDTO.setUserID(customer.getUser().getUserID());
+        return ResponseEntity.ok(customerDTO);
+    }
 }

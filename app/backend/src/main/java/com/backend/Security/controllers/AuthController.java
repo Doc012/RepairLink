@@ -156,10 +156,10 @@ public class AuthController {
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("message", "Login successful");
 //            responseBody.put("userID", user.getUserID());
-            responseBody.put("name", user.getName());
-            responseBody.put("phoneNumber", user.getPhoneNumber());
+//            responseBody.put("name", user.getName());
+//            responseBody.put("phoneNumber", user.getPhoneNumber());
             responseBody.put("email", userDetails.getUsername());
-            responseBody.put("surname", user.getSurname());
+//            responseBody.put("surname", user.getSurname());
             responseBody.put("roles", userDetails.getAuthorities());
 
             return ResponseEntity.ok(responseBody);
@@ -175,6 +175,7 @@ public class AuthController {
                     .body("An error occurred during login");
         }
     }
+
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
         try {
