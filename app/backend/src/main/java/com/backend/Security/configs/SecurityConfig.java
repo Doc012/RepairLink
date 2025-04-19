@@ -69,7 +69,7 @@ public class SecurityConfig {
 
                     auth.requestMatchers("/api/v1/bookings/customer/**").hasAuthority("ROLE_CUSTOMER");
                     auth.requestMatchers("/api/v1/bookings/provider/**").hasAuthority("ROLE_VENDOR");
-                    auth.requestMatchers("/api/v1/bookings/status/**").hasAuthority("ROLE_VENDOR");
+//                    auth.requestMatchers("/api/v1/bookings/status/**").hasAuthority("ROLE_VENDOR");
 
                     auth.requestMatchers("/api/v1/reviews/customer/**").hasAuthority("ROLE_CUSTOMER");
 
