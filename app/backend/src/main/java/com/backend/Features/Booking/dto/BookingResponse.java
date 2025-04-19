@@ -1,6 +1,7 @@
 package com.backend.Features.Booking.dto;
 
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class BookingResponse {
@@ -12,6 +13,25 @@ public class BookingResponse {
     private String additionalNotes;
     private String status;
     private LocalDateTime createdAt;
+
+//    ___________________________________________________________________________________________
+//    Backend modification to Include More Information (Long-term Solution)
+//    The best solution is to include more information in the bookings endpoint response. I could:
+//
+//    Join the bookings table with services and providers tables in your SQL query
+//    Include the necessary fields in the BookingResponse DTO
+//    Example BookingResponse DTO:
+
+//    // Additional fields from Service
+//    private String serviceName;
+//    private BigDecimal price;
+//
+//    // Additional fields from Provider
+//    private String providerName;
+//    private String location;
+//    private String phoneNumber;
+
+//    ____________________________________________________________________________________________
 
     public int getBookingID() {
         return bookingID;

@@ -22,8 +22,15 @@ public class BookingController {
         return ResponseEntity.ok(bookingResponse);
     }
 
+//    @GetMapping("/customer")
+//    public ResponseEntity<List<BookingResponse>> getBookingsByCustomer(@RequestParam int customerID) {
+//        List<BookingResponse> bookings = bookingService.getBookingsByCustomer(customerID);
+//        return ResponseEntity.ok(bookings);
+//    }
+
     @GetMapping("/customer")
     public ResponseEntity<List<BookingResponse>> getBookingsByCustomer(@RequestParam int customerID) {
+        // Make sure this parameter name matches the one in your frontend API call
         List<BookingResponse> bookings = bookingService.getBookingsByCustomer(customerID);
         return ResponseEntity.ok(bookings);
     }

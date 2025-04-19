@@ -59,7 +59,11 @@ public class SecurityConfig {
                             "/api/v1/services/{serviceID}",
                             "/api/v1/services/provider/{providerID}"
                     ).permitAll();
+//                    auth.requestMatchers("/api/v1/users/by-email/{email}").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_VENDOR", "ROLE_ADMIN");
+
                     auth.requestMatchers("/api/v1/customers/admin/**").hasAuthority("ROLE_ADMIN");
+                    auth.requestMatchers("/api/v1/customers/user/{userID}").hasAuthority("ROLE_CUSTOMER");
+
 
                     auth.requestMatchers("/api/v1/roles/admin/**").hasAuthority("ROLE_ADMIN");
 
