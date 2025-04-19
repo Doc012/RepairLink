@@ -144,7 +144,7 @@ const customerAPI = {
    * @returns {Promise} Created review
    */
   createReview: (reviewData) => {
-    return apiClient.post('/customers/reviews', reviewData);
+    return apiClient.post('/v1/reviews/customer', reviewData);
   },
 
   /**
@@ -154,7 +154,9 @@ const customerAPI = {
    * @returns {Promise} Updated review
    */
   updateReview: (reviewId, reviewData) => {
-    return apiClient.put(`/customers/reviews/${reviewId}`, reviewData);
+    // Use the correct endpoint format with customer ID
+    // Note: For now using hardcoded 1 for customerID, ideally should come from user context
+    return apiClient.put(`/v1/reviews/customer/1/${reviewId}`, reviewData);
   },
 
   /**
@@ -163,7 +165,9 @@ const customerAPI = {
    * @returns {Promise} Deletion response
    */
   deleteReview: (reviewId) => {
-    return apiClient.delete(`/customers/reviews/${reviewId}`);
+    // Use the correct endpoint format with customer ID
+    // Note: For now using hardcoded 1 for customerID, ideally should come from user context
+    return apiClient.delete(`/v1/reviews/customer/1/${reviewId}`);
   },
 
   /**
@@ -236,6 +240,15 @@ const customerAPI = {
   getBookings: (customerID) => {
     // Remove the /api prefix since apiClient is already adding it
     return apiClient.get(`/v1/bookings/customer?customerID=${customerID}`);
+  },
+
+  /**
+   * Get reviews by customer ID
+   * @param {number} customerID - Customer ID
+   * @returns {Promise} Reviews list for the customer
+   */
+  getCustomerReviews: (customerID) => {
+    return apiClient.get(`/v1/reviews/customer/${customerID}`);
   }
 };
 

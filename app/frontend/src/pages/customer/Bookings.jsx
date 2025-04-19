@@ -69,12 +69,23 @@ const Bookings = () => {
     isOpen: false, 
     bookingId: null
   });
+  const [reviewModal, setReviewModal] = useState({
+    isOpen: false,
+    bookingId: null,
+    serviceName: '',
+    providerName: ''
+  });
+  const [reviewData, setReviewData] = useState({
+    rating: 5,
+    comment: ''
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     fetchBookings();
   }, [user]);
 
-  // Update the fetchBookings function to include detailed service and provider information
+  // Update the fetchBookings function to use the customer reviews endpoint
 
 const fetchBookings = async () => {
   if (!user) return;
@@ -85,6 +96,15 @@ const fetchBookings = async () => {
   try {
     // Get bookings using the endpoint from your API
     const bookingsResp = await customerAPI.getBookings(1); // Using customer ID 1 for now
+    
+    // Get all reviews for this customer in one request instead of per booking
+    let customerReviews = [];
+    try {
+      const reviewsResp = await customerAPI.getCustomerReviews(1); // Using customer ID 1
+      customerReviews = reviewsResp.data || [];
+    } catch (err) {
+      console.warn('Failed to fetch customer reviews', err);
+    }
     
     if (bookingsResp?.data) {
       const bookingsData = bookingsResp.data;
@@ -114,7 +134,10 @@ const fetchBookings = async () => {
             providerDetails = null;
           }
           
-          // Step 3: Combine all the data
+          // Step 3: Check if the booking has a review using the customer reviews
+          const hasReview = customerReviews.some(review => review.bookingID === booking.bookingID);
+          
+          // Step 4: Combine all the data
           enhancedBookings.push({
             id: booking.bookingID,
             serviceName: serviceDetails?.serviceName || `Service #${booking.serviceID}`,
@@ -128,11 +151,11 @@ const fetchBookings = async () => {
             },
             date: booking.bookingDate,
             status: booking.status,
-            notes: booking.additionalNotes || ""
+            notes: booking.additionalNotes || "",
+            hasReview: hasReview
           });
         } catch (err) {
-          console.error(`Error processing booking ID ${booking.bookingID}:`, err);
-          // Add basic booking data even if enhancement fails
+          // Your existing error handling for individual bookings
           enhancedBookings.push({
             id: booking.bookingID,
             serviceName: `Service #${booking.serviceID}`,
@@ -143,14 +166,15 @@ const fetchBookings = async () => {
             },
             date: booking.bookingDate,
             status: booking.status,
-            notes: booking.additionalNotes || ""
+            notes: booking.additionalNotes || "",
+            hasReview: false
           });
         }
       }
       
       setBookings(enhancedBookings);
       
-      // Calculate stats
+      // Calculate stats - no changes needed here
       setStats({
         total: enhancedBookings.length,
         upcoming: enhancedBookings.filter(b => b.status === 'CONFIRMED').length,
@@ -216,9 +240,61 @@ const cancelBooking = async () => {
   }
 };
 
-  const handleLeaveReview = (bookingId) => {
-    navigate(`/customer/reviews/new?bookingId=${bookingId}`);
-  };
+// Replace the existing handleLeaveReview function
+
+const handleLeaveReview = (bookingId) => {
+  const booking = bookings.find(b => b.id === bookingId);
+  if (!booking) return;
+  
+  setReviewModal({
+    isOpen: true,
+    bookingId,
+    serviceName: booking.serviceName,
+    providerName: booking.provider?.name || 'Service Provider'
+  });
+  setReviewData({
+    rating: 5,
+    comment: ''
+  });
+};
+
+// Add this function for submitting reviews
+
+const submitReview = async () => {
+  if (!reviewModal.bookingId || !reviewData.rating) return;
+  
+  setSubmittingReview(true);
+  
+  try {
+    // Format data according to API requirements
+    const reviewPayload = {
+      customerID: 1, // Hardcoded for now, ideally from user context
+      bookingID: reviewModal.bookingId,
+      rating: reviewData.rating,
+      comment: reviewData.comment.trim() || "No comments provided."
+    };
+    
+    // Send review to API
+    await customerAPI.createReview(reviewPayload);
+    
+    toast.success("Review submitted successfully!");
+    setReviewModal({ isOpen: false, bookingId: null, serviceName: '', providerName: '' });
+    
+    // Update local state to mark the booking as reviewed
+    setBookings(prevBookings => 
+      prevBookings.map(booking => 
+        booking.id === reviewModal.bookingId 
+          ? { ...booking, hasReview: true } 
+          : booking
+      )
+    );
+  } catch (err) {
+    console.error("Failed to submit review:", err);
+    toast.error("Failed to submit review. Please try again.");
+  } finally {
+    setSubmittingReview(false);
+  }
+};
 
   const getStatusColor = (status) => {
     const colors = {
@@ -334,12 +410,6 @@ const cancelBooking = async () => {
             <option value="COMPLETED">Completed</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
-          <Link 
-            to="/user/services"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 hidden md:inline-block"
-          >
-            Book New Service
-          </Link>
         </div>
       </div>
 
@@ -408,13 +478,20 @@ const cancelBooking = async () => {
                       {formatCurrency(booking.price)}
                     </span>
                     
-                    {booking.status === 'COMPLETED' && (
+                    {booking.status === 'COMPLETED' && !booking.hasReview && (
                       <button 
                         onClick={() => handleLeaveReview(booking.id)}
                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                       >
                         Leave Review
                       </button>
+                    )}
+
+                    {booking.status === 'COMPLETED' && booking.hasReview && (
+                      <span className="text-sm text-green-600 dark:text-green-400 font-medium flex items-center">
+                        <CheckCircleIcon className="h-4 w-4 mr-1" />
+                        Reviewed
+                      </span>
                     )}
                     
                     {booking.status === 'CONFIRMED' && (
@@ -511,6 +588,128 @@ const cancelBooking = async () => {
           </div>
         </div>
       )}
+      {/* Review Modal */}
+      {reviewModal.isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+                 onClick={() => setReviewModal({ isOpen: false, bookingId: null, serviceName: '', providerName: '' })} />
+
+            {/* Modal content */}
+            <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all dark:bg-slate-800 sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
+              <div className="bg-white px-4 pt-5 pb-4 dark:bg-slate-800 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6 text-blue-600 dark:text-blue-500">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                    </svg>
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                      Leave a Review
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500 dark:text-slate-400">
+                        How was your experience with {reviewModal.serviceName} by {reviewModal.providerName}?
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Your Rating
+                    </label>
+                    <StarRating 
+                      rating={reviewData.rating}
+                      onRatingChange={(newRating) => setReviewData(prev => ({ ...prev, rating: newRating }))}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="comment" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Your Comments
+                    </label>
+                    <textarea
+                      id="comment"
+                      rows={4}
+                      className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                      placeholder="Share details about your experience..."
+                      value={reviewData.comment}
+                      onChange={(e) => setReviewData(prev => ({ ...prev, comment: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 px-4 py-3 dark:bg-slate-700/30 sm:flex sm:flex-row-reverse sm:px-6">
+                <button
+                  type="button"
+                  onClick={submitReview}
+                  disabled={submittingReview}
+                  className="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none disabled:opacity-50 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  {submittingReview ? (
+                    <>
+                      <svg className="mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Review'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReviewModal({ isOpen: false, bookingId: null, serviceName: '', providerName: '' })}
+                  className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Star Rating Component
+const StarRating = ({ rating, onRatingChange }) => {
+  const [hoverRating, setHoverRating] = useState(0);
+  
+  return (
+    <div className="flex items-center">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          className="p-1"
+          onMouseEnter={() => setHoverRating(star)}
+          onMouseLeave={() => setHoverRating(0)}
+          onClick={() => onRatingChange(star)}
+        >
+          <svg 
+            className={`w-8 h-8 ${
+              (hoverRating || rating) >= star 
+                ? 'text-yellow-400' 
+                : 'text-gray-300 dark:text-gray-600'
+            }`}
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 20 20" 
+            fill="currentColor"
+          >
+            <path 
+              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0L6.982 20.54a1 1 0 01-1.54-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+            />
+          </svg>
+        </button>
+      ))}
     </div>
   );
 };
