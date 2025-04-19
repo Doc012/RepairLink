@@ -73,8 +73,40 @@ const customerAPI = {
    * @param {Object} bookingData - Booking information
    * @returns {Promise} Created booking
    */
-  createBooking: (bookingData) => {
-    return apiClient.post('/customers/bookings', bookingData);
+  createBooking: async (bookingData) => {
+    try {
+      // Ensure all IDs are numbers
+      bookingData = {
+        ...bookingData,
+        customerID: Number(bookingData.customerID),
+        serviceID: Number(bookingData.serviceID),
+        providerID: Number(bookingData.providerID)
+      };
+      
+      // Make sure the date format is correct - should be YYYY-MM-DDTHH:MM:SS
+      if (bookingData.bookingDate) {
+        // Add seconds if they're missing
+        if (!bookingData.bookingDate.match(/:\d{2}$/)) {
+          bookingData.bookingDate = `${bookingData.bookingDate}:00`;
+        }
+        
+        // Ensure the format matches exactly
+        const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
+        if (!dateRegex.test(bookingData.bookingDate)) {
+          console.error('Invalid date format:', bookingData.bookingDate);
+          console.log('Date format should be YYYY-MM-DDTHH:MM:SS');
+          throw new Error('Invalid date format');
+        }
+      }
+      
+      console.log('Sending booking data:', bookingData);
+      
+      // Using the correct endpoint without duplicate "api"
+      return await apiClient.post('/v1/bookings/customer', bookingData);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      throw error;
+    }
   },
 
   /**
@@ -83,7 +115,19 @@ const customerAPI = {
    * @returns {Promise} Cancellation response
    */
   cancelBooking: (bookingId) => {
-    return apiClient.post(`/customers/bookings/${bookingId}/cancel`);
+    // Try PUT instead of POST
+    return apiClient.put(`/v1/bookings/${bookingId}/cancel`);
+  },
+
+  /**
+   * Update booking status
+   * @param {string} bookingId - Booking ID to update
+   * @param {string} newStatus - New status (PENDING, CONFIRMED, CANCELLED, COMPLETED)
+   * @returns {Promise} Response from the API
+   */
+  updateBookingStatus: (bookingId, newStatus) => {
+    // Change from POST to PUT
+    return apiClient.put(`/v1/bookings/status/${bookingId}`, { newStatus });
   },
 
   /**
@@ -142,6 +186,56 @@ const customerAPI = {
     return apiClient.get(`/services/${serviceId}/available-slots`, {
       params: { date }
     });
+  },
+
+  // Mock implementation for time slots
+  getAvailableTimeSlots: async (serviceID, date) => {
+    // This is a placeholder that will be replaced with the real API call
+    // For now, it returns a Promise to simulate an API call
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Create a Date object from the selected date
+        const selectedDate = new Date(date);
+        const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
+        // Check if it's a weekend (0 = Sunday, 6 = Saturday)
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          resolve({ data: [] }); // No slots on weekends
+          return;
+        }
+        
+        // Generate time slots from 8:00 AM to 5:00 PM with 1-hour intervals
+        const slots = [];
+        for (let hour = 8; hour < 17; hour++) {
+          // Format: "HH:00:00"
+          const formattedHour = hour.toString().padStart(2, '0');
+          slots.push(`${formattedHour}:00:00`);
+        }
+        
+        // Simulate some slots being unavailable (randomly)
+        const unavailableCount = Math.floor(Math.random() * 3); // 0 to 2 unavailable slots
+        const availableSlots = [...slots];
+        
+        for (let i = 0; i < unavailableCount; i++) {
+          const randomIndex = Math.floor(Math.random() * availableSlots.length);
+          if (randomIndex >= 0 && randomIndex < availableSlots.length) {
+            availableSlots.splice(randomIndex, 1);
+          }
+        }
+        
+        resolve({ data: availableSlots });
+      }, 800); // Simulate network delay
+    });
+  },
+
+  /**
+   * Get customer bookings
+   * @param {string} customerID - Customer ID
+   * @returns {Promise} Bookings list
+   */
+  getBookings: (customerID) => {
+    // Remove the /api prefix since apiClient is already adding it
+    return apiClient.get(`/v1/bookings/customer?customerID=${customerID}`);
   }
 };
 
