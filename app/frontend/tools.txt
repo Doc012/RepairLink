@@ -1,0 +1,23 @@
+___//INSTALL PACKAGES\\___
+1. Install Tailwind CSS with Vite
+2. Install react-router-dom lucide-react recharts
+3. Install framer-motion
+4. npm install recharts
+5. npm install tailwind-merge
+6. npm install @uidotdev/usehooks
+7. npm install axios
+
+
+
+___//ERRORS\\___
+1. Theme error: 
+    /** @type {import('tailwindcss').Config} */
+    export default {
+    content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+    darkMode: "class", // ADD THIS TO YOUR tailwind.config.js\\
+    theme: {
+        extend: {},
+    },
+    plugins: [],
+    };
+  

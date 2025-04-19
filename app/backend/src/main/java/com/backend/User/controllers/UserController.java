@@ -1,6 +1,7 @@
 package com.backend.User.controllers;
 
 import com.backend.User.dtos.UserDTO;
+import com.backend.User.dtos.UserUpdateDTO;
 import com.backend.User.entities.User;
 import com.backend.User.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,21 +12,21 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/users")
 public class UserController {
 
     @Autowired
     private UserService userService;
 
     // Create a new user
-    @PostMapping("/admin")
+    @PostMapping
     public ResponseEntity<User> createUser(@RequestBody UserDTO userDTO) {
         User user = userService.createUser(userDTO);
         return ResponseEntity.ok(user);
     }
 
     // Get all users
-    @GetMapping("/admin")
+    @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
@@ -38,15 +39,30 @@ public class UserController {
         return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    // Get a user by email
+    @GetMapping("/by-email/{email}")
+    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+        Optional<User> user = userService.getUserByEmail(email);
+        return user.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     // Update a user
-    @PutMapping("/admin/{userID}")
+    @PutMapping("user/{userID}")
     public ResponseEntity<User> updateUser(@PathVariable int userID, @RequestBody UserDTO userDTO) {
         User updatedUser = userService.updateUser(userID, userDTO);
         return ResponseEntity.ok(updatedUser);
     }
 
+    // Update user's name, surname and phone number only
+    @PutMapping("/user/{userID}/basic-info")
+    public ResponseEntity<User> updateUserBasicInfo(@PathVariable int userID, @RequestBody UserUpdateDTO updateDTO) {
+        User updatedUser = userService.updateUserPartial(userID, updateDTO);
+        return ResponseEntity.ok(updatedUser);
+    }
+
     //Delete a user
-    @DeleteMapping("/admin/{userID}")
+    @DeleteMapping("/{userID}")
     public ResponseEntity<Void> deleteUser(@PathVariable int userID) {
         userService.deleteUser(userID);
         return ResponseEntity.noContent().build();

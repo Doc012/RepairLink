@@ -7,8 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/customers")
+@RequestMapping("/api/v1/customers")
 @RequiredArgsConstructor
 public class CustomerController {
     private final CustomerService customerService;
@@ -16,6 +18,27 @@ public class CustomerController {
     @GetMapping("/{id}")
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable int id) {
         Customer customer = customerService.getCustomerById(id);
+        CustomerDTO customerDTO = new CustomerDTO();
+        customerDTO.setCustomerID(customer.getCustomerID());
+        customerDTO.setUserID(customer.getUser().getUserID());
+        return ResponseEntity.ok(customerDTO);
+    }
+
+    @GetMapping("/admin")
+    public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
+        List<Customer> customers = customerService.getAllCustomers();
+        List<CustomerDTO> customerDTOs = customers.stream().map(customer -> {
+            CustomerDTO customerDTO = new CustomerDTO();
+            customerDTO.setCustomerID(customer.getCustomerID());
+            customerDTO.setUserID(customer.getUser().getUserID());
+            return customerDTO;
+        }).toList();
+        return ResponseEntity.ok(customerDTOs);
+    }
+
+    @GetMapping("/user/{userID}")
+    public ResponseEntity<CustomerDTO> getCustomerByUserId(@PathVariable int userID) {
+        Customer customer = customerService.getCustomerByUserId(userID);
         CustomerDTO customerDTO = new CustomerDTO();
         customerDTO.setCustomerID(customer.getCustomerID());
         customerDTO.setUserID(customer.getUser().getUserID());

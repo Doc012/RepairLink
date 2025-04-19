@@ -3,7 +3,6 @@ package com.backend.User.entities;
 
 import jakarta.persistence.*;
 
-import java.sql.Date;
 import java.time.LocalDateTime;
 
 @Entity
@@ -47,7 +46,7 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "roleID", referencedColumnName = "roleID")
-    private RoleType roleType;
+    private Role roleType;
 
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
@@ -69,7 +68,7 @@ public class User {
     public User() {
     }
 
-    public User(int userID, String name, String surname, String phoneNumber, String email, String password, boolean enabled, String verificationToken, LocalDateTime verificationTokenExpiry, String picUrl, int verificationAttempts, RoleType roleType, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public User(int userID, String name, String surname, String phoneNumber, String email, String password, boolean enabled, String verificationToken, LocalDateTime verificationTokenExpiry, String picUrl, int verificationAttempts, Role roleType, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userID = userID;
         this.name = name;
         this.surname = surname;
@@ -174,11 +173,11 @@ public class User {
         this.verificationAttempts = verificationAttempts;
     }
 
-    public RoleType getRoleType() {
+    public Role getRoleType() {
         return roleType;
     }
 
-    public void setRoleType(RoleType roleType) {
+    public void setRoleType(Role roleType) {
         this.roleType = roleType;
     }
 

@@ -45,6 +45,7 @@ public class BookingService {
         booking.setServiceClass(serviceClass);
         booking.setProvider(provider);
         booking.setBookingDate(bookingRequest.getBookingDate());
+        booking.setAdditionalNotes(bookingRequest.getAdditionalNotes());
         booking.setStatus(BookingStatus.PENDING);
         booking.setCreatedAt(LocalDateTime.now());
 
@@ -91,6 +92,7 @@ public class BookingService {
         bookingResponse.setServiceID(booking.getServiceClass().getServiceID());
         bookingResponse.setStatus(booking.getStatus().name());
         bookingResponse.setBookingDate(booking.getBookingDate());
+        bookingResponse.setAdditionalNotes(booking.getAdditionalNotes());
         return bookingResponse;
     }
 
@@ -101,6 +103,7 @@ public class BookingService {
         response.setServiceID(booking.getServiceClass().getServiceID());
         response.setProviderID(booking.getProvider().getProviderID());
         response.setBookingDate(booking.getBookingDate());
+        response.setAdditionalNotes(booking.getAdditionalNotes());
         response.setStatus(booking.getStatus().name());
         response.setCreatedAt(booking.getCreatedAt());
         return response;

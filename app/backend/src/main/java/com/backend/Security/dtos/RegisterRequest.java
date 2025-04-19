@@ -12,7 +12,6 @@ public class RegisterRequest {
     @NotNull(message = "Name cannot be null.")
     private String name;
 
-
     @NotNull(message = "Surname cannot be null.")
     private String surname;
 
@@ -29,12 +28,8 @@ public class RegisterRequest {
 
     private String picUrl;
 
-    @NotNull(message = "Role cannot be null.")
-    private int roleID;
-
-
-    @NotNull(message = "Role cannot be null.")
-    private String roleType;
+//    @NotNull(message = "Role cannot be null.")
+    private RoleType roleType;
 
     public int getUserID() {
         return userID;
@@ -44,44 +39,44 @@ public class RegisterRequest {
         this.userID = userID;
     }
 
-    public @NotNull(message = "Name cannot be null.") String getName() {
+    public String getName() {
         return name;
     }
 
-    public void setName(@NotNull(message = "Name cannot be null.") String name) {
+    public void setName(String name) {
         this.name = name;
     }
 
-    public @NotNull(message = "Surname cannot be null.") String getSurname() {
+    public String getSurname() {
         return surname;
     }
 
-    public void setSurname(@NotNull(message = "Surname cannot be null.") String surname) {
-        this.surname = surname;
-    }
-
-    public @NotNull(message = "Phone number cannot be null.") @Pattern(regexp = "\\d{10}", message = "Phone number must be 10 digits.") String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(@NotNull(message = "Phone number cannot be null.") @Pattern(regexp = "\\d{10}", message = "Phone number must be 10 digits.") String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public @NotNull(message = "Email cannot be null.") @Email(message = "Invalid email address.") String getEmail() {
-        return email;
-    }
-
-    public void setEmail(@NotNull(message = "Email cannot be null.") @Email(message = "Invalid email address.") String email) {
-        this.email = email;
-    }
-
-    public @NotBlank(message = "Password is required") String getPassword() {
+    public String getPassword() {
         return password;
     }
 
-    public void setPassword(@NotBlank(message = "Password is required") String password) {
+    public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setSurname(String surname) {
+        this.surname = surname;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPicUrl() {
@@ -92,20 +87,11 @@ public class RegisterRequest {
         this.picUrl = picUrl;
     }
 
-    @NotNull(message = "Role cannot be null.")
-    public int getRoleID() {
-        return roleID;
-    }
-
-    public void setRoleID(@NotNull(message = "Role cannot be null.") int roleID) {
-        this.roleID = roleID;
-    }
-
-    public @NotNull(message = "Role cannot be null.") String getRoleType() {
+    public RoleType getRoleType() {
         return roleType;
     }
 
-    public void setRoleType(@NotNull(message = "Role cannot be null.") String roleType) {
+    public void setRoleType(RoleType roleType) {
         this.roleType = roleType;
     }
 }

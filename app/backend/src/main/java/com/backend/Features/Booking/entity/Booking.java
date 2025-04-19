@@ -28,7 +28,11 @@ public class Booking {
     @JoinColumn(name = "providerID", referencedColumnName = "providerID", nullable = false)
     private ServiceProvider provider;
 
+    @Column(name = "bookingDate")
     private LocalDateTime bookingDate;
+
+    @Column(name = "additionalNotes")
+    private String additionalNotes;
 
     @Enumerated(EnumType.STRING)
     private BookingStatus status;
@@ -39,12 +43,13 @@ public class Booking {
     public Booking() {
     }
 
-    public Booking(int bookingID, Customer customer, ServiceClass serviceClass, ServiceProvider provider, LocalDateTime bookingDate, BookingStatus status, LocalDateTime createdAt) {
+    public Booking(int bookingID, Customer customer, ServiceClass serviceClass, ServiceProvider provider, LocalDateTime bookingDate, String additionalNotes, BookingStatus status, LocalDateTime createdAt) {
         this.bookingID = bookingID;
         this.customer = customer;
         this.serviceClass = serviceClass;
         this.provider = provider;
         this.bookingDate = bookingDate;
+        this.additionalNotes = additionalNotes;
         this.status = status;
         this.createdAt = createdAt;
     }
@@ -87,6 +92,14 @@ public class Booking {
 
     public void setBookingDate(LocalDateTime bookingDate) {
         this.bookingDate = bookingDate;
+    }
+
+    public String getAdditionalNotes() {
+        return additionalNotes;
+    }
+
+    public void setAdditionalNotes(String additionalNotes) {
+        this.additionalNotes = additionalNotes;
     }
 
     public BookingStatus getStatus() {

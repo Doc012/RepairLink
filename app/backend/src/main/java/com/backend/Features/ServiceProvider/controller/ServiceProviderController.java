@@ -11,24 +11,28 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/service-providers")
+@RequestMapping("/api/v1/service-providers")
 @RequiredArgsConstructor
 public class ServiceProviderController {
     private final ServiceProviderService serviceProviderService;
 
-    @PostMapping
-    public ResponseEntity<ServiceProvider> createServiceProvider(@RequestBody ServiceProviderDTO serviceProviderDTO, @RequestParam User user) {
-        ServiceProvider serviceProvider = serviceProviderService.createServiceProvider(user, serviceProviderDTO);
+    @PostMapping("/create")
+    public ResponseEntity<ServiceProvider> createServiceProvider(
+            @RequestBody ServiceProviderDTO serviceProviderDTO) {
+
+        ServiceProvider serviceProvider = serviceProviderService.createServiceProvider(
+                serviceProviderDTO, serviceProviderDTO.getUserID());
         return ResponseEntity.ok(serviceProvider);
     }
 
-    @PutMapping("/{id}")
+
+    @PutMapping("update/{id}")
     public ResponseEntity<ServiceProvider> updateServiceProvider(@PathVariable int id, @RequestBody ServiceProviderDTO serviceProviderDTO) {
         ServiceProvider serviceProvider = serviceProviderService.updateServiceProvider(id, serviceProviderDTO);
         return ResponseEntity.ok(serviceProvider);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> deleteServiceProvider(@PathVariable int id) {
         serviceProviderService.deleteServiceProvider(id);
         return ResponseEntity.noContent().build();
@@ -45,4 +49,6 @@ public class ServiceProviderController {
         List<ServiceProvider> serviceProviders = serviceProviderService.getAllServiceProviders();
         return ResponseEntity.ok(serviceProviders);
     }
+
+
 }
