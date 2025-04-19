@@ -11,7 +11,8 @@ import {
   XMarkIcon,
   PhoneIcon,
   ExclamationCircleIcon,
-  ArrowUpIcon
+  ArrowUpIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useAuth } from '../../contexts/auth/AuthContext';
@@ -151,64 +152,299 @@ const Services = () => {
     const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
     const provider = providers[service.providerID] || {};
 
-    // Fetch available time slots for selected date
-    useEffect(() => {
-      if (!bookingData.date) return;
-      
-      const fetchTimeSlots = async () => {
-        try {
-          const response = await customerAPI.getAvailableTimeSlots(
-            service.serviceID, 
-            bookingData.date
-          );
-          
-          setAvailableTimeSlots(response.data);
-          
-          // Clear selected time if it's no longer available
-          if (bookingData.time && !response.data.includes(bookingData.time)) {
-            setBookingData(prev => ({ ...prev, time: '' }));
-          }
-        } catch (err) {
-          console.error("Failed to fetch time slots:", err);
-          setBookingError('Failed to load available time slots');
-        }
-      };
-      
-      fetchTimeSlots();
-    }, [service.serviceID, bookingData.date]);
+    // Add these states to your BookingModal component
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [readyToSubmit, setReadyToSubmit] = useState(false);
 
+    // Add this state to your BookingModal component
+    const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
+
+    // 1. First, update the state structure to separate booking data from form values
+    // Add this near the top of your BookingModal component:
+
+    const [formNotes, setFormNotes] = useState('');  // Separate state for notes input
+
+    // 2. Replace the useEffect for generating time slots to track the date more precisely
+    useEffect(() => {
+      // Store the date we're currently loading slots for to prevent duplicate loading
+      const currentLoadingDate = bookingData.date;
+      
+      if (!currentLoadingDate) return;
+      
+      setLoadingTimeSlots(true);
+      
+      // Use this timeout to simulate API call
+      const timeoutId = setTimeout(() => {
+        // Check if the date is still the same when the timeout completes
+        if (currentLoadingDate !== bookingData.date) return;
+        
+        try {
+          // Generate time slots from 8:00 AM to 5:00 PM with 1-hour intervals
+          const slots = [];
+          for (let hour = 8; hour < 17; hour++) {
+            // Format: "HH:00:00"
+            const formattedHour = hour.toString().padStart(2, '0');
+            slots.push(`${formattedHour}:00:00`);
+          }
+          
+          // Make some slots unavailable based on date
+          const dateValue = parseInt(currentLoadingDate.split('-')[2]); // Get day of month
+          const unavailableCount = dateValue % 3; // 0, 1, or 2 slots unavailable
+          
+          if (unavailableCount > 0) {
+            // Remove specific slots based on the date
+            for (let i = 0; i < unavailableCount; i++) {
+              const indexToRemove = (dateValue + i) % slots.length;
+              if (indexToRemove >= 0 && indexToRemove < slots.length) {
+                slots.splice(indexToRemove, 1);
+              }
+            }
+          }
+          
+          setAvailableTimeSlots(slots);
+          setBookingError('');
+        } catch (err) {
+          console.error("Error generating time slots:", err);
+          setBookingError('Failed to generate available time slots');
+          setAvailableTimeSlots([]);
+        } finally {
+          if (currentLoadingDate === bookingData.date) {
+            setLoadingTimeSlots(false);
+          }
+        }
+      }, 600);
+      
+      return () => clearTimeout(timeoutId);
+    }, [bookingData.date]);
+
+    // Replace the existing handleSubmit function in your BookingModal component
     const handleSubmit = async (e) => {
       e.preventDefault();
-      setBookingError('');
-      setIsSubmitting(true);
-
-      try {
-        // Format data for booking API
-        const bookingPayload = {
-          serviceID: service.serviceID,
-          scheduledDate: `${bookingData.date}T${bookingData.time}:00`,
-          notes: bookingData.notes,
-        };
-        
-        // Create booking through API
-        const response = await customerAPI.createBooking(bookingPayload);
-        
-        // Show success message
-        toast.success('Booking created successfully!');
-        
-        // Close modal and reset form
-        onClose();
-      } catch (err) {
-        console.error("Booking failed:", err);
-        const errorMessage = err.response?.data?.message || 'Failed to create booking';
-        setBookingError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setIsSubmitting(false);
+      
+      // Show confirmation dialog instead of submitting directly
+      if (!showConfirmation) {
+        setShowConfirmation(true);
+        return;
+      }
+      
+      // Only proceed if confirmation was approved
+      if (readyToSubmit) {
+        setBookingError('');
+        setIsSubmitting(true);
+    
+        try {
+          // Format date and time correctly for the API - ensure exact format matching
+          const bookingDateTime = `${bookingData.date}T${bookingData.time.split(':00')[0]}:00:00`;
+          
+          // Format data for booking API - ensure IDs are numbers not strings
+          const bookingPayload = {
+            customerID: 1, // Hardcoded value for testing
+            serviceID: Number(service.serviceID),
+            providerID: Number(service.providerID),
+            bookingDate: bookingDateTime,
+            additionalNotes: formNotes || "No additional notes provided."
+          };
+          
+          console.log("Sending booking payload:", JSON.stringify(bookingPayload));
+          
+          // Create booking through API
+          const response = await customerAPI.createBooking(bookingPayload);
+          
+          // Show success message
+          toast.success('Booking created successfully!');
+          
+          // Close modal and reset form
+          onClose();
+        } catch (err) {
+          console.error("Booking failed:", err);
+          
+          // Log the response data if available
+          if (err.response && err.response.data) {
+            console.error("Error response data:", err.response.data);
+          }
+          
+          setShowConfirmation(false);
+          setReadyToSubmit(false);
+          const errorMessage = err.response?.data?.message || 'Failed to create booking';
+          setBookingError(errorMessage);
+          toast.error(errorMessage);
+        } finally {
+          setIsSubmitting(false);
+        }
       }
     };
 
     const today = new Date().toISOString().split('T')[0];
+
+    // Add this helper component inside your BookingModal component
+    const TimeSlotGrid = ({ timeSlots, selectedTime, onSelectTime }) => {
+      // Group time slots by morning (before noon) and afternoon
+      const morningSlots = timeSlots.filter(slot => {
+        const hour = parseInt(slot.split(':')[0]);
+        return hour < 12;
+      });
+      
+      const afternoonSlots = timeSlots.filter(slot => {
+        const hour = parseInt(slot.split(':')[0]);
+        return hour >= 12;
+      });
+      
+      const formatTimeSlot = (slot) => {
+        const [hours, minutes] = slot.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour > 12 ? hour - 12 : hour;
+        return `${displayHour}:${minutes} ${ampm}`;
+      };
+      
+      return (
+        <div className="space-y-4">
+          {morningSlots.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">Morning</h4>
+              <div className="grid grid-cols-3 gap-2">
+                {morningSlots.map(slot => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => onSelectTime(slot)}
+                    className={`py-2 px-3 text-sm rounded-md border ${
+                      selectedTime === slot
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-400'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {formatTimeSlot(slot)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {afternoonSlots.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">Afternoon</h4>
+              <div className="grid grid-cols-3 gap-2">
+                {afternoonSlots.map(slot => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => onSelectTime(slot)}
+                    className={`py-2 px-3 text-sm rounded-md border ${
+                      selectedTime === slot
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-400'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {formatTimeSlot(slot)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Add this function to format dates
+    const formatDateForDisplay = (dateString) => {
+      const options = { weekday: 'long', month: 'long', day: 'numeric' };
+      return new Date(dateString).toLocaleDateString(undefined, options);
+    };
+
+    // Add this function to check if a date is a weekend
+    const isWeekend = (dateString) => {
+      const date = new Date(dateString);
+      const day = date.getDay();
+      return day === 0 || day === 6; // 0 is Sunday, 6 is Saturday
+    };
+
+    // Add this function to find the next available weekday
+    const getNextAvailableWeekday = (date) => {
+      const nextDate = new Date(date);
+      while (isWeekend(nextDate)) {
+        nextDate.setDate(nextDate.getDate() + 1);
+      }
+      return nextDate.toISOString().split('T')[0];
+    };
+
+    // Replace this function in your BookingModal component
+    // To create a custom warning toast function:
+    const showWarning = (message) => {
+      return toast(message, {
+        icon: '⚠️',
+        duration: 3000,
+        style: {
+          borderRadius: '10px',
+          background: '#FEF3C7',
+          color: '#92400E',
+        },
+      });
+    };
+
+    // Add this custom success notification function in your BookingModal component
+    const showSuccessNotification = () => {
+      try {
+        toast.custom(
+          (t) => (
+            <div 
+              className={`${
+                t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 dark:bg-slate-800 dark:border dark:border-slate-700`}
+            >
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center dark:bg-green-900/30">
+                      <CheckIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      Booking Successful!
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                      Your appointment has been confirmed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col border-l border-gray-200 dark:border-slate-700">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    window.location.href = '/customer/bookings'; 
+                  }}
+                  className="w-full border border-transparent p-3 flex items-center justify-center text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  View Bookings
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="w-full border-t border-gray-200 p-3 flex items-center justify-center text-sm font-medium text-gray-600 hover:text-gray-500 focus:outline-none dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ),
+          {
+            duration: 5000, // 5 seconds
+            position: 'top-center'
+          }
+        );
+        
+        // Set a backup timeout just in case
+        setTimeout(() => {
+          toast.dismiss(); // This will dismiss all toasts
+        }, 6000);
+        
+      } catch (err) {
+        console.error('Error showing custom toast:', err);
+        // Show a standard toast that will auto-dismiss
+        toast.success('Booking created successfully!', { duration: 5000 });
+      }
+    };
 
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -263,55 +499,91 @@ const Services = () => {
                       type="date"
                       min={today}
                       value={bookingData.date}
-                      onChange={(e) => setBookingData({ ...bookingData, date: e.target.value, time: '' })}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        
+                        // If selecting the same date, don't reset
+                        if (newDate === bookingData.date) return;
+                        
+                        const selectedDay = new Date(newDate).getDay();
+                        // If it's a weekend, show message and select next available weekday
+                        if (selectedDay === 0 || selectedDay === 6) {
+                          showWarning('We don\'t offer services on weekends. Please select a weekday.');
+                          const nextWeekday = getNextAvailableWeekday(newDate);
+                          
+                          // Set to next available weekday
+                          setBookingData(prev => ({
+                            ...prev,
+                            date: nextWeekday,
+                            time: ''
+                          }));
+                        } else {
+                          // Clear time only if date changes
+                          setBookingData(prev => ({
+                            ...prev,
+                            date: newDate,
+                            time: ''
+                          }));
+                        }
+                      }}
+                      onKeyDown={(e) => e.preventDefault()} 
                       required
                       className="mt-1 block w-full rounded-lg border border-gray-300 p-2.5 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                     />
+                    {bookingData.date && (
+                      <span className="text-sm text-gray-500 dark:text-slate-400 mt-1 inline-block">
+                        {formatDateForDisplay(bookingData.date)}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Time Selection */}
+                  {/* Time Selection - Replace with improved version */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
                       Select Time
                     </label>
-                    <select
-                      value={bookingData.time}
-                      onChange={(e) => setBookingData({ ...bookingData, time: e.target.value })}
-                      required
-                      disabled={!bookingData.date || availableTimeSlots.length === 0}
-                      className="mt-1 block w-full rounded-lg border border-gray-300 p-2.5 dark:border-slate-600 dark:bg-slate-700 dark:text-white disabled:opacity-50"
-                    >
-                      <option value="">Choose a time slot</option>
-                      {availableTimeSlots.length > 0 ? (
-                        availableTimeSlots.map(slot => (
-                          <option key={slot} value={slot}>
-                            {new Date(`2000-01-01T${slot}`).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </option>
-                        ))
+                    
+                    {bookingData.date ? (
+                      loadingTimeSlots ? (
+                        <div className="mt-2 p-4 bg-gray-50 rounded-md border border-gray-200 dark:bg-slate-800 dark:border-slate-700 flex justify-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                        </div>
                       ) : (
-                        bookingData.date && (
-                          <option value="" disabled>No available times for selected date</option>
+                        availableTimeSlots.length > 0 ? (
+                          <div className="mt-2 p-4 bg-gray-50 rounded-md border border-gray-200 dark:bg-slate-800 dark:border-slate-700">
+                            <TimeSlotGrid
+                              timeSlots={availableTimeSlots}
+                              selectedTime={bookingData.time}
+                              onSelectTime={(slot) => setBookingData(prev => ({ ...prev, time: slot }))}
+                            />
+                          </div>
+                        ) : (
+                          <div className="mt-2 p-4 bg-yellow-50 rounded-md border border-yellow-100 dark:bg-yellow-900/20 dark:border-yellow-700/50">
+                            <p className="text-sm text-yellow-700 dark:text-yellow-400 flex items-center">
+                              <ExclamationCircleIcon className="h-5 w-5 mr-2" />
+                              No time slots available for this date. Please select another date.
+                            </p>
+                          </div>
                         )
-                      )}
-                    </select>
-                    {bookingData.date && availableTimeSlots.length === 0 && !isSubmitting && (
-                      <p className="mt-1 text-sm text-yellow-600 dark:text-yellow-400">
-                        No time slots available for this date. Please select another date.
-                      </p>
+                      )
+                    ) : (
+                      <div className="mt-2 p-4 bg-blue-50 rounded-md border border-blue-100 dark:bg-blue-900/20 dark:border-blue-700/50">
+                        <p className="text-sm text-blue-700 dark:text-blue-400 flex items-center">
+                          <InformationCircleIcon className="h-5 w-5 mr-2" />
+                          Select a date first to see available time slots
+                        </p>
+                      </div>
                     )}
                   </div>
 
-                  {/* Notes */}
+                  {/* Notes - Update to use separate form state */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
                       Additional Notes
                     </label>
                     <textarea
-                      value={bookingData.notes}
-                      onChange={(e) => setBookingData({ ...bookingData, notes: e.target.value })}
+                      value={formNotes}
+                      onChange={(e) => setFormNotes(e.target.value)}
                       rows={3}
                       className="mt-1 block w-full rounded-lg border border-gray-300 p-2.5 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                       placeholder="Any special requirements or instructions..."
@@ -348,6 +620,108 @@ const Services = () => {
             </form>
           </div>
         </div>
+
+        {/* Add this confirmation modal inside the BookingModal component */}
+        {showConfirmation && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+
+              <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all dark:bg-slate-800 sm:my-8 sm:w-full sm:max-w-md sm:align-middle">
+                <div className="px-6 pt-5 pb-4">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                      <CheckIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+                      Confirm your booking
+                    </h3>
+                    <div className="mt-3 text-sm text-gray-500 dark:text-slate-400">
+                      <p>You are about to book:</p>
+                      <p className="mt-2 font-medium text-gray-900 dark:text-white">{service.serviceName}</p>
+                      <p className="mt-1">with {provider.businessName}</p>
+                      <p className="mt-2">
+                        on {new Date(bookingData.date).toLocaleDateString()} at {
+                          new Date(`2000-01-01T${bookingData.time}`).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })
+                        }
+                      </p>
+                      <p className="mt-3">Price: {formatCurrency(service.price)}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-gray-200 px-6 py-4 dark:border-slate-700">
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowConfirmation(false);
+                        setReadyToSubmit(false);
+                      }}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSubmitting(true);
+                        
+                        // Format date and time correctly for the API
+                        const bookingDateTime = `${bookingData.date}T${bookingData.time.split(':00')[0]}:00:00`;
+                        
+                        // Format data for booking API
+                        const bookingPayload = {
+                          customerID: 1, // Hardcoded value for testing
+                          serviceID: Number(service.serviceID),
+                          providerID: Number(service.providerID),
+                          bookingDate: bookingDateTime,
+                          additionalNotes: formNotes || "No additional notes provided."
+                        };
+                        
+                        console.log("Sending booking payload:", JSON.stringify(bookingPayload));
+                        
+                        // Create booking through API
+                        customerAPI.createBooking(bookingPayload)
+                          .then(response => {
+                            console.log('Booking successful, showing notification');
+                            // Show enhanced success notification
+                            showSuccessNotification();
+                            
+                            // Add small delay before closing modal
+                            setTimeout(() => {
+                              onClose();
+                            }, 500);
+                          })
+                          .catch(err => {
+                            console.error("Booking failed:", err);
+                            
+                            // Log the response data if available
+                            if (err.response && err.response.data) {
+                              console.error("Error response data:", err.response.data);
+                            }
+                            
+                            setShowConfirmation(false);
+                            const errorMessage = err.response?.data?.message || 'Failed to create booking';
+                            setBookingError(errorMessage);
+                            toast.error(errorMessage);
+                          })
+                          .finally(() => {
+                            setIsSubmitting(false);
+                          });
+                      }}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    >
+                      {isSubmitting ? 'Processing...' : 'Confirm Booking'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
