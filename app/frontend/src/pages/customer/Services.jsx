@@ -18,6 +18,7 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import { useAuth } from '../../contexts/auth/AuthContext';
 import { customerAPI, publicAPI } from '../../services';
 import { toast } from 'react-hot-toast';
+import apiClient from '../../utils/apiClient';
 
 const Services = () => {
   const { user } = useAuth();
@@ -217,7 +218,7 @@ const Services = () => {
       return () => clearTimeout(timeoutId);
     }, [bookingData.date]);
 
-    // Replace the existing handleSubmit function in your BookingModal component
+    // Replace the existing handleSubmit function
     const handleSubmit = async (e) => {
       e.preventDefault();
       
@@ -233,12 +234,15 @@ const Services = () => {
         setIsSubmitting(true);
     
         try {
-          // Format date and time correctly for the API - ensure exact format matching
+          // Get customerID from the authenticated user
+          const customerID = await getCustomerID(user.email);
+          
+          // Format date and time correctly for the API
           const bookingDateTime = `${bookingData.date}T${bookingData.time.split(':00')[0]}:00:00`;
           
-          // Format data for booking API - ensure IDs are numbers not strings
+          // Format data for booking API with dynamic customerID
           const bookingPayload = {
-            customerID: 1, // Hardcoded value for testing
+            customerID: customerID, // Using the dynamic customerID
             serviceID: Number(service.serviceID),
             providerID: Number(service.providerID),
             bookingDate: bookingDateTime,
@@ -669,22 +673,26 @@ const Services = () => {
                       onClick={() => {
                         setIsSubmitting(true);
                         
-                        // Format date and time correctly for the API
-                        const bookingDateTime = `${bookingData.date}T${bookingData.time.split(':00')[0]}:00:00`;
-                        
-                        // Format data for booking API
-                        const bookingPayload = {
-                          customerID: 1, // Hardcoded value for testing
-                          serviceID: Number(service.serviceID),
-                          providerID: Number(service.providerID),
-                          bookingDate: bookingDateTime,
-                          additionalNotes: formNotes || "No additional notes provided."
-                        };
-                        
-                        console.log("Sending booking payload:", JSON.stringify(bookingPayload));
-                        
-                        // Create booking through API
-                        customerAPI.createBooking(bookingPayload)
+                        // Get customerID from the authenticated user
+                        getCustomerID(user.email)
+                          .then(customerID => {
+                            // Format date and time correctly for the API
+                            const bookingDateTime = `${bookingData.date}T${bookingData.time.split(':00')[0]}:00:00`;
+                            
+                            // Format data for booking API with dynamic customerID
+                            const bookingPayload = {
+                              customerID: customerID, // Using the dynamic customerID
+                              serviceID: Number(service.serviceID),
+                              providerID: Number(service.providerID),
+                              bookingDate: bookingDateTime,
+                              additionalNotes: formNotes || "No additional notes provided."
+                            };
+                            
+                            console.log("Sending booking payload:", JSON.stringify(bookingPayload));
+                            
+                            // Create booking through API
+                            return customerAPI.createBooking(bookingPayload);
+                          })
                           .then(response => {
                             console.log('Booking successful, showing notification');
                             // Show enhanced success notification
@@ -831,6 +839,33 @@ const Services = () => {
         </button>
       </div>
     );
+  };
+
+  // Add this helper function inside the Services component, before useEffect hooks
+  const getCustomerID = async (email) => {
+    try {
+      // Step 1: Get user details by email
+      const userResponse = await apiClient.get(`/v1/users/by-email/${email}`);
+      const userData = userResponse.data;
+      
+      if (!userData || !userData.userID) {
+        throw new Error('Failed to get user details');
+      }
+      
+      // Step 2: Get customer ID using userID
+      const customerResponse = await apiClient.get(`/v1/customers/user/${userData.userID}`);
+      const customerData = customerResponse.data;
+      
+      if (!customerData || !customerData.customerID) {
+        throw new Error('Failed to get customer details');
+      }
+      
+      console.log('Customer ID found:', customerData.customerID);
+      return customerData.customerID;
+    } catch (err) {
+      console.error('Error fetching customer ID:', err);
+      throw err;
+    }
   };
 
   return (

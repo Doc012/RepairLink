@@ -1,3 +1,4 @@
 Additional Features
 1. Admin dashboard for user management and more
 2. Available Time Slots check when a user is booking a service
+3. Business webites and email
