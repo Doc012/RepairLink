@@ -38,4 +38,21 @@ public class ReviewController {
         List<ReviewResponse> reviews = reviewService.getMyReviews(customerID);
         return ResponseEntity.ok(reviews);
     }
+
+    @PutMapping("/customer/{customerID}/{reviewID}")
+    public ResponseEntity<ReviewResponse> updateReview(
+            @PathVariable int customerID,
+            @PathVariable int reviewID,
+            @RequestBody ReviewRequest reviewRequest) {
+        ReviewResponse updatedReview = reviewService.updateReview(reviewID, reviewRequest, customerID);
+        return ResponseEntity.ok(updatedReview);
+    }
+
+    @DeleteMapping("/customer/{customerID}/{reviewID}")
+    public ResponseEntity<Void> deleteReview(
+            @PathVariable int customerID,
+            @PathVariable int reviewID) {
+        reviewService.deleteReview(reviewID, customerID);
+        return ResponseEntity.noContent().build();
+    }
 }

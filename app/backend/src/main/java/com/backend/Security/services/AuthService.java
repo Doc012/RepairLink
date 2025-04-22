@@ -72,6 +72,7 @@ public class AuthService {
                 sendVerificationEmail(user);
             }
         }).exceptionally(ex -> {
+            log.error("Error during registration", ex); // Add this line to log the exception
             Throwable cause = ex.getCause();
             if (cause instanceof UserAlreadyExistsException) {
                 throw new UserAlreadyExistsException("An account with this email already exists. Please sign in or use another email address.");

@@ -33,7 +33,7 @@ public class UserController {
     }
 
     // Get a user by ID
-    @GetMapping({"/admin/{userID}", "/user/{userID}"})
+    @GetMapping({"/{userID}"})
     public ResponseEntity<User> getUserById(@PathVariable int userID) {
         Optional<User> user = userService.getUserById(userID);
         return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
@@ -55,10 +55,17 @@ public class UserController {
     }
 
     // Update user's name, surname and phone number only
-    @PutMapping("/user/{userID}/basic-info")
+    @PutMapping("/{userID}/basic-info")
     public ResponseEntity<User> updateUserBasicInfo(@PathVariable int userID, @RequestBody UserUpdateDTO updateDTO) {
         User updatedUser = userService.updateUserPartial(userID, updateDTO);
         return ResponseEntity.ok(updatedUser);
+    }
+
+    // Get basic info of a user by ID
+    @GetMapping("/{userID}/basic-info")
+    public ResponseEntity<UserUpdateDTO> getUserBasicInfoById(@PathVariable int userID) {
+        UserUpdateDTO userUpdateDTO = userService.getUserBasicInfoById(userID);
+        return ResponseEntity.ok(userUpdateDTO);
     }
 
     //Delete a user

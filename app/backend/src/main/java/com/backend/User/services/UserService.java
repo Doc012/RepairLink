@@ -96,6 +96,23 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    // Get basic info of a user by ID
+    public UserUpdateDTO getUserBasicInfoById(int userID) {
+        Optional<User> user = userRepository.findById(userID);
+        if (user.isEmpty()) {
+            throw new RuntimeException("User not found with ID " + userID);
+        }
+
+        User existingUser = user.get();
+        UserUpdateDTO userUpdateDTO = new UserUpdateDTO();
+        userUpdateDTO.setName(existingUser.getName());
+        userUpdateDTO.setSurname(existingUser.getSurname());
+        userUpdateDTO.setPhoneNumber(existingUser.getPhoneNumber());
+
+        return userUpdateDTO;
+    }
+
+
     // Delete a user
     public void deleteUser(int userID) {
         if (!userRepository.existsById(userID)){

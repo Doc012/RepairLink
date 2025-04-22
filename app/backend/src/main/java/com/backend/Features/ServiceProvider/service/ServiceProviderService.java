@@ -59,4 +59,9 @@ public class ServiceProviderService {
         return serviceProviderRepository.findAll();
     }
 
+    public ServiceProvider getServiceProviderByUserId(int userID) {
+        return serviceProviderRepository.findByUser_UserID(userID)
+                .orElseThrow(() -> new RuntimeException("ServiceProvider not found for User ID: " + userID));
+    }
+
 }

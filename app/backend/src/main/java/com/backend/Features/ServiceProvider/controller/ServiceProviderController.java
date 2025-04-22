@@ -26,9 +26,9 @@ public class ServiceProviderController {
     }
 
 
-    @PutMapping("update/{id}")
-    public ResponseEntity<ServiceProvider> updateServiceProvider(@PathVariable int id, @RequestBody ServiceProviderDTO serviceProviderDTO) {
-        ServiceProvider serviceProvider = serviceProviderService.updateServiceProvider(id, serviceProviderDTO);
+    @PutMapping("update/{providerID}")
+    public ResponseEntity<ServiceProvider> updateServiceProvider(@PathVariable int providerID, @RequestBody ServiceProviderDTO serviceProviderDTO) {
+        ServiceProvider serviceProvider = serviceProviderService.updateServiceProvider(providerID, serviceProviderDTO);
         return ResponseEntity.ok(serviceProvider);
     }
 
@@ -48,6 +48,12 @@ public class ServiceProviderController {
     public ResponseEntity<List<ServiceProvider>> getAllServiceProviders() {
         List<ServiceProvider> serviceProviders = serviceProviderService.getAllServiceProviders();
         return ResponseEntity.ok(serviceProviders);
+    }
+
+    @GetMapping("/by-user/{userID}")
+    public ResponseEntity<ServiceProvider> getServiceProviderByUserId(@PathVariable int userID) {
+        ServiceProvider serviceProvider = serviceProviderService.getServiceProviderByUserId(userID);
+        return ResponseEntity.ok(serviceProvider);
     }
 
 

@@ -84,17 +84,6 @@ public class SecurityConfig {
                     auth.requestMatchers("/api/v1/service-providers/update/**").hasAuthority("ROLE_VENDOR");
                     auth.requestMatchers("/api/v1/service-providers/delete/**").hasAuthority("ROLE_VENDOR");
 
-
-
-
-
-
-
-
-
-
-
-
 //                    auth.requestMatchers("/error").permitAll();
 
                     auth.anyRequest().authenticated();
