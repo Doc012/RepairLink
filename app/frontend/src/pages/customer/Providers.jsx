@@ -19,8 +19,37 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import { format } from 'date-fns';
 import { publicAPI, customerAPI } from '../../services';
 import { toast } from 'react-hot-toast';
+import apiClient from '../../utils/apiClient';
+import { useAuth } from '../../contexts/auth/AuthContext';
+
+const getCustomerID = async (email) => {
+  try {
+    // Step 1: Get user details by email
+    const userResponse = await apiClient.get(`/v1/users/by-email/${email}`);
+    const userData = userResponse.data;
+    
+    if (!userData || !userData.userID) {
+      throw new Error('Failed to get user details');
+    }
+    
+    // Step 2: Get customer ID using userID
+    const customerResponse = await apiClient.get(`/v1/customers/user/${userData.userID}`);
+    const customerData = customerResponse.data;
+    
+    if (!customerData || !customerData.customerID) {
+      throw new Error('Failed to get customer details');
+    }
+    
+    console.log('Customer ID found:', customerData.customerID);
+    return customerData.customerID;
+  } catch (err) {
+    console.error('Error fetching customer ID:', err);
+    throw err;
+  }
+};
 
 const CustomerProviders = () => {
+  const { user } = useAuth();
   // Replace mock data with real state
   const [providers, setProviders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1020,6 +1049,21 @@ const CustomerProviders = () => {
       }
     };
   
+    // Add state to track the customer ID
+    const [customerID, setCustomerID] = useState(null);
+    
+    // Fetch the customer ID when the modal opens
+    useEffect(() => {
+      if (user && user.email) {
+        getCustomerID(user.email)
+          .then(id => setCustomerID(id))
+          .catch(err => {
+            console.error("Could not fetch customer ID:", err);
+            setBookingError("Could not verify your account. Please try again.");
+          });
+      }
+    }, [user]);
+    
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto">
         <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -1247,9 +1291,17 @@ const CustomerProviders = () => {
                         // Format date and time correctly for the API
                         const bookingDateTime = `${bookingData.date}T${bookingData.time.split(':00')[0]}:00:00`;
                         
+                        // Make sure we have the customer ID
+                        if (!customerID) {
+                          setBookingError("Could not verify your customer account.");
+                          setShowConfirmation(false);
+                          setIsSubmitting(false);
+                          return;
+                        }
+                        
                         // Format data for booking API
                         const bookingPayload = {
-                          customerID: 1, // Hardcoded value for testing
+                          customerID: customerID, // Use dynamic customerID instead of hardcoded value
                           serviceID: Number(service.serviceID),
                           providerID: Number(service.providerID || provider.providerID),
                           bookingDate: bookingDateTime,

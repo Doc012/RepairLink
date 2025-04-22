@@ -16,6 +16,7 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import { customerAPI, publicAPI } from '../../services';
 import { useAuth } from '../../contexts/auth/AuthContext';
 import { toast } from 'react-hot-toast';
+import apiClient from '../../utils/apiClient'; // Add this import
 
 // Loading skeleton component for bookings
 const LoadingSkeleton = () => (
@@ -49,6 +50,32 @@ const LoadingSkeleton = () => (
     ))}
   </div>
 );
+
+// Helper function to get customer ID from user email
+const getCustomerID = async (email) => {
+  try {
+    // Step 1: Get user details by email
+    const userResponse = await apiClient.get(`/v1/users/by-email/${email}`);
+    const userData = userResponse.data;
+    
+    if (!userData || !userData.userID) {
+      throw new Error('Failed to get user details');
+    }
+    
+    // Step 2: Get customer ID using userID
+    const customerResponse = await apiClient.get(`/v1/customers/user/${userData.userID}`);
+    const customerData = customerResponse.data;
+    
+    if (!customerData || !customerData.customerID) {
+      throw new Error('Failed to get customer details');
+    }
+    
+    return customerData.customerID;
+  } catch (err) {
+    console.error('Error fetching customer ID:', err);
+    throw err;
+  }
+};
 
 const Bookings = () => {
   const { user } = useAuth();
@@ -85,8 +112,7 @@ const Bookings = () => {
     fetchBookings();
   }, [user]);
 
-  // Update the fetchBookings function to use the customer reviews endpoint
-
+  // Update the fetchBookings function to eliminate any remaining sample data
 const fetchBookings = async () => {
   if (!user) return;
   
@@ -94,18 +120,21 @@ const fetchBookings = async () => {
   setError(null);
   
   try {
-    // Get bookings using the endpoint from your API
-    const bookingsResp = await customerAPI.getBookings(1); // Using customer ID 1 for now
+    const customerID = await getCustomerID(user.email);
     
-    // Get all reviews for this customer in one request instead of per booking
+    // Get bookings using the customer ID
+    const bookingsResp = await customerAPI.getBookings(customerID);
+    
+    // Get all reviews for this customer
     let customerReviews = [];
     try {
-      const reviewsResp = await customerAPI.getCustomerReviews(1); // Using customer ID 1
+      const reviewsResp = await customerAPI.getCustomerReviews(customerID);
       customerReviews = reviewsResp.data || [];
     } catch (err) {
       console.warn('Failed to fetch customer reviews', err);
     }
     
+    // Process the bookings
     if (bookingsResp?.data) {
       const bookingsData = bookingsResp.data;
       const enhancedBookings = [];
@@ -116,7 +145,6 @@ const fetchBookings = async () => {
           // Step 1: Fetch service details for each booking
           let serviceDetails;
           try {
-            // Try first to get service from publicAPI
             const serviceResp = await publicAPI.getServices({ serviceID: booking.serviceID });
             serviceDetails = serviceResp.data.find(s => s.serviceID === booking.serviceID) || null;
           } catch (err) {
@@ -155,7 +183,8 @@ const fetchBookings = async () => {
             hasReview: hasReview
           });
         } catch (err) {
-          // Your existing error handling for individual bookings
+          console.error(`Error processing booking ${booking.bookingID}:`, err);
+          // Still include the booking with minimal details
           enhancedBookings.push({
             id: booking.bookingID,
             serviceName: `Service #${booking.serviceID}`,
@@ -174,7 +203,7 @@ const fetchBookings = async () => {
       
       setBookings(enhancedBookings);
       
-      // Calculate stats - no changes needed here
+      // Calculate stats
       setStats({
         total: enhancedBookings.length,
         upcoming: enhancedBookings.filter(b => b.status === 'CONFIRMED').length,
@@ -182,14 +211,31 @@ const fetchBookings = async () => {
         cancelled: enhancedBookings.filter(b => b.status === 'CANCELLED').length,
         pending: enhancedBookings.filter(b => b.status === 'PENDING').length
       });
+    } else {
+      // No bookings found
+      setBookings([]);
+      setStats({
+        total: 0,
+        upcoming: 0,
+        completed: 0,
+        cancelled: 0,
+        pending: 0
+      });
     }
   } catch (err) {
     console.error("Error fetching bookings:", err);
     setError("Failed to load bookings. Please try again later.");
     toast.error("Failed to load bookings");
     
-    // Use sample data for demonstration (your existing fallback data)
-    // ...
+    // Instead of using sample data, set empty state
+    setBookings([]);
+    setStats({
+      total: 0,
+      upcoming: 0,
+      completed: 0,
+      cancelled: 0,
+      pending: 0
+    });
   } finally {
     setLoading(false);
   }
@@ -261,14 +307,16 @@ const handleLeaveReview = (bookingId) => {
 // Add this function for submitting reviews
 
 const submitReview = async () => {
-  if (!reviewModal.bookingId || !reviewData.rating) return;
+  if (!reviewModal.bookingId || !reviewData.rating || !user) return;
   
   setSubmittingReview(true);
   
   try {
-    // Format data according to API requirements
+    const customerID = await getCustomerID(user.email);
+    
+    // Format data according to API requirements with the correct customerID
     const reviewPayload = {
-      customerID: 1, // Hardcoded for now, ideally from user context
+      customerID: customerID,
       bookingID: reviewModal.bookingId,
       rating: reviewData.rating,
       comment: reviewData.comment.trim() || "No comments provided."

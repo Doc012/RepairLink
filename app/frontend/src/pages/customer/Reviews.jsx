@@ -13,6 +13,7 @@ import { customerAPI, publicAPI } from '../../services';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/auth/AuthContext';
+import apiClient from '../../utils/apiClient';
 
 // Loading skeleton component for reviews
 const LoadingSkeleton = () => (
@@ -243,6 +244,32 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, isDeleting }) => 
   );
 };
 
+const getCustomerID = async (email) => {
+  try {
+    // Step 1: Get user details by email
+    const userResponse = await apiClient.get(`/v1/users/by-email/${email}`);
+    const userData = userResponse.data;
+    
+    if (!userData || !userData.userID) {
+      throw new Error('Failed to get user details');
+    }
+    
+    // Step 2: Get customer ID using userID
+    const customerResponse = await apiClient.get(`/v1/customers/user/${userData.userID}`);
+    const customerData = customerResponse.data;
+    
+    if (!customerData || !customerData.customerID) {
+      throw new Error('Failed to get customer details');
+    }
+    
+    console.log('Customer ID found:', customerData.customerID);
+    return customerData.customerID;
+  } catch (err) {
+    console.error('Error fetching customer ID:', err);
+    throw err;
+  }
+};
+
 const CustomerReviews = () => {
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
@@ -255,6 +282,7 @@ const CustomerReviews = () => {
   const [deleteReview, setDeleteReview] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [newReviewBooking, setNewReviewBooking] = useState(null);
+  const [customerID, setCustomerID] = useState(null);
 
   // Format date using date-fns
   const formatDate = (dateString) => {
@@ -275,17 +303,19 @@ const CustomerReviews = () => {
       setError(null);
       
       try {
-        // Custom ID hardcoded for testing - replace with user.customerID in production
-        const customerID = 1;
+        // Get customer ID dynamically from authenticated user
+        const custID = await getCustomerID(user.email);
+        setCustomerID(custID);
         
-        // Fetch customer reviews
-        const reviewsResponse = await customerAPI.getCustomerReviews(customerID);
+        // Fetch customer reviews with dynamic customer ID
+        const reviewsResponse = await customerAPI.getCustomerReviews(custID);
         let reviewsData = reviewsResponse.data || [];
         
-        // Fetch customer bookings to find completed bookings without reviews
-        const bookingsResponse = await customerAPI.getBookings(customerID);
+        // Fetch customer bookings with dynamic customer ID
+        const bookingsResponse = await customerAPI.getBookings(custID);
         let bookingsData = bookingsResponse.data || [];
         
+        // Rest of your existing code remains the same
         // Process reviews with service and provider details
         const processedReviews = [];
         for (const review of reviewsData) {
@@ -414,11 +444,11 @@ const CustomerReviews = () => {
 
   // Confirm delete review
   const confirmDeleteReview = async () => {
-    if (!deleteReview) return;
+    if (!deleteReview || !customerID) return;
     
     setIsDeleting(true);
     try {
-      await customerAPI.deleteReview(deleteReview.id);
+      await customerAPI.deleteReview(deleteReview.id, customerID); // Pass the customerID here
       setReviews(reviews.filter(r => r.id !== deleteReview.id));
       
       // Move the booking back to pending reviews
@@ -447,6 +477,7 @@ const CustomerReviews = () => {
     if (isEditing && editReview) {
       // Update existing review
       const reviewData = {
+        customerID: customerID, // Use the dynamically retrieved customerID
         rating,
         comment
       };
@@ -466,7 +497,7 @@ const CustomerReviews = () => {
     } else if (newReviewBooking) {
       // Create new review
       const reviewData = {
-        customerID: 1, // Hardcoded for testing
+        customerID: customerID, // Replace hardcoded '1' with dynamic customerID
         bookingID: newReviewBooking.bookingID,
         rating,
         comment: comment || "No comments provided."

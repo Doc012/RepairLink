@@ -14,6 +14,15 @@ const userAPI = {
   },
 
   /**
+   * Get user by ID
+   * @param {number} userId - User ID
+   * @returns {Promise} User data
+   */
+  getUserById: (userId) => {
+    return apiClient.get(`/v1/users/${userId}`);
+  },
+
+  /**
    * Get user profile
    * @returns {Promise} User profile data
    */
@@ -28,7 +37,7 @@ const userAPI = {
    * @returns {Promise} Update response
    */
   updateProfile: (userID, profileData) => {
-    return apiClient.put(`/v1/users/user/${userID}/basic-info`, profileData);
+    return apiClient.put(`/v1/users/${userID}/basic-info`, profileData);
   },
 
   /**
@@ -58,6 +67,36 @@ const userAPI = {
         'Content-Type': 'multipart/form-data'
       }
     });
+  },
+
+  /**
+   * Get user basic info
+   * @param {number} userId - User ID
+   * @returns {Promise} User basic info
+   */
+  getUserBasicInfo: async (userId) => {
+    try {
+      const response = await apiClient.get(`/v1/users/${userId}/basic-info`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching user basic info:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get customer by ID
+   * @param {number} customerId - Customer ID
+   * @returns {Promise} Customer data
+   */
+  getCustomerById: async (customerId) => {
+    try {
+      const response = await apiClient.get(`/v1/customers/${customerId}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching customer details:', error);
+      throw error;
+    }
   }
 };
 

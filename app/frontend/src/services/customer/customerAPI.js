@@ -12,7 +12,7 @@ const customerAPI = {
     return apiClient.get('/customers/profile');
   },
 
-  /**
+   /**
    * Update customer profile
    * @param {Object} profileData - Updated profile data
    * @returns {Promise} Update response
@@ -38,7 +38,7 @@ const customerAPI = {
   },
 
   /**
-   * Change customer password
+  //  * Change customer password
    * @param {string} currentPassword - Current password
    * @param {string} newPassword - New password
    * @returns {Promise} Password change response
@@ -52,11 +52,22 @@ const customerAPI = {
   
   /**
    * Get customer bookings
+   * @param {number} customerID - Customer ID
    * @param {Object} filters - Optional filters like status or date
    * @returns {Promise} Bookings list
    */
-  getBookings: (filters = {}) => {
-    return apiClient.get('/customers/bookings', { params: filters });
+  getBookings: (customerID, filters = {}) => {
+    if (!customerID) {
+      console.error('Customer ID is required to fetch bookings');
+      throw new Error('Customer ID is required to fetch bookings');
+    }
+    
+    return apiClient.get(`/v1/bookings/customer`, { 
+      params: { 
+        customerID,
+        ...filters 
+      } 
+    });
   },
 
   /**
@@ -132,10 +143,16 @@ const customerAPI = {
 
   /**
    * Get customer reviews
+   * @param {number} customerID - Customer ID
    * @returns {Promise} Reviews list
    */
-  getReviews: () => {
-    return apiClient.get('/customers/reviews');
+  getReviews: (customerID) => {
+    if (!customerID) {
+      console.error('Customer ID is required to fetch reviews');
+      throw new Error('Customer ID is required to fetch reviews');
+    }
+    
+    return apiClient.get(`/v1/reviews/customer/${customerID}`);
   },
 
   /**
@@ -144,6 +161,16 @@ const customerAPI = {
    * @returns {Promise} Created review
    */
   createReview: (reviewData) => {
+    if (!reviewData.customerID) {
+      console.error('Customer ID is required to create a review');
+      throw new Error('Customer ID is required to create a review');
+    }
+    
+    if (!reviewData.bookingID) {
+      console.error('Booking ID is required to create a review');
+      throw new Error('Booking ID is required to create a review');
+    }
+    
     return apiClient.post('/v1/reviews/customer', reviewData);
   },
 
@@ -154,20 +181,30 @@ const customerAPI = {
    * @returns {Promise} Updated review
    */
   updateReview: (reviewId, reviewData) => {
-    // Use the correct endpoint format with customer ID
-    // Note: For now using hardcoded 1 for customerID, ideally should come from user context
-    return apiClient.put(`/v1/reviews/customer/1/${reviewId}`, reviewData);
+    // Use the customerID from reviewData instead of hardcoding
+    const { customerID } = reviewData;
+    
+    if (!customerID) {
+      console.error('Customer ID is required to update a review');
+      throw new Error('Customer ID is required to update a review');
+    }
+    
+    return apiClient.put(`/v1/reviews/customer/${customerID}/${reviewId}`, reviewData);
   },
 
   /**
    * Delete a review
    * @param {string} reviewId - Review ID to delete
+   * @param {number} customerID - Customer ID who owns the review
    * @returns {Promise} Deletion response
    */
-  deleteReview: (reviewId) => {
-    // Use the correct endpoint format with customer ID
-    // Note: For now using hardcoded 1 for customerID, ideally should come from user context
-    return apiClient.delete(`/v1/reviews/customer/1/${reviewId}`);
+  deleteReview: (reviewId, customerID) => {
+    if (!customerID) {
+      console.error('Customer ID is required to delete a review');
+      throw new Error('Customer ID is required to delete a review');
+    }
+    
+    return apiClient.delete(`/v1/reviews/customer/${customerID}/${reviewId}`);
   },
 
   /**
@@ -186,16 +223,16 @@ const customerAPI = {
    * @param {string} date - Date in YYYY-MM-DD format
    * @returns {Promise} Available time slots
    */
-  getAvailableTimeSlots: (serviceId, date) => {
-    return apiClient.get(`/services/${serviceId}/available-slots`, {
-      params: { date }
-    });
-  },
-
-  // Mock implementation for time slots
-  getAvailableTimeSlots: async (serviceID, date) => {
-    // This is a placeholder that will be replaced with the real API call
-    // For now, it returns a Promise to simulate an API call
+  getAvailableTimeSlots: async (serviceId, date) => {
+    if (!serviceId) {
+      throw new Error('Service ID is required to fetch available time slots');
+    }
+    
+    if (!date) {
+      throw new Error('Date is required to fetch available time slots');
+    }
+    
+    // For now keeping the mock implementation
     return new Promise((resolve) => {
       setTimeout(() => {
         // Create a Date object from the selected date
@@ -230,16 +267,11 @@ const customerAPI = {
         resolve({ data: availableSlots });
       }, 800); // Simulate network delay
     });
-  },
-
-  /**
-   * Get customer bookings
-   * @param {string} customerID - Customer ID
-   * @returns {Promise} Bookings list
-   */
-  getBookings: (customerID) => {
-    // Remove the /api prefix since apiClient is already adding it
-    return apiClient.get(`/v1/bookings/customer?customerID=${customerID}`);
+    
+    // When ready to use the real API endpoint:
+    // return apiClient.get(`/v1/services/${serviceId}/available-slots`, {
+    //   params: { date }
+    // });
   },
 
   /**

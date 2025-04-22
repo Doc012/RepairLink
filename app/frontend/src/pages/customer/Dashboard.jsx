@@ -22,6 +22,7 @@ import { format, parseISO, isFuture } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { customerAPI, publicAPI } from '../../services';
 import { useAuth } from '../../contexts/auth/AuthContext';
+import apiClient from '../../utils/apiClient'; // Add this import
 
 // Loading skeleton for the dashboard
 const LoadingSkeleton = () => (
@@ -137,6 +138,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [customerID, setCustomerID] = useState(null);
   const [stats, setStats] = useState({
     totalBookings: 0,
     completedServices: 0,
@@ -168,6 +170,38 @@ const Dashboard = () => {
     }
   };
 
+  // Get customer ID from user email
+  const fetchCustomerID = async (email) => {
+    try {
+      // Step 1: Get user details by email
+      const userResponse = await apiClient.get(`/v1/users/by-email/${email}`);
+      const userData = userResponse.data;
+      
+      if (!userData || !userData.userID) {
+        throw new Error('Failed to get user details');
+      }
+      
+      // Step 2: Get customer ID using userID
+      const customerResponse = await apiClient.get(`/v1/customers/user/${userData.userID}`);
+      const customerData = customerResponse.data;
+      
+      if (!customerData || !customerData.customerID) {
+        throw new Error('Failed to get customer details');
+      }
+      
+      console.log('Customer ID found:', customerData.customerID);
+      setCustomerID(customerData.customerID);
+      
+      // Set name from user data
+      setUserName(userData.name || 'Customer');
+      
+      return customerData.customerID;
+    } catch (err) {
+      console.error('Error fetching customer ID:', err);
+      throw err;
+    }
+  };
+
   // Fetch dashboard data
   const fetchDashboardData = async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) {
@@ -178,28 +212,23 @@ const Dashboard = () => {
     setError(null);
 
     try {
-      // Current customer ID (hardcoded for now)
-      const customerId = 1;
+      if (!user || !user.email) {
+        throw new Error('User not authenticated');
+      }
       
-      // 1. Fetch customer profile
-      let customerName = 'Customer';
-      try {
-        const profileResponse = await customerAPI.getProfile();
-        if (profileResponse.data) {
-          const { firstName, lastName } = profileResponse.data;
-          customerName = firstName || 'Customer';
-          setUserName(customerName);
-        }
-      } catch (err) {
-        console.warn('Error fetching customer profile:', err);
+      // Get customer ID from user email
+      const custID = customerID || await fetchCustomerID(user.email);
+      
+      if (!custID) {
+        throw new Error('Customer ID not found');
       }
 
-      // 2. Fetch all bookings
-      const bookingsResponse = await customerAPI.getBookings(customerId);
+      // 2. Fetch all bookings using customer ID
+      const bookingsResponse = await customerAPI.getBookings(custID);
       const bookings = bookingsResponse.data || [];
       
-      // 3. Fetch all reviews
-      const reviewsResponse = await customerAPI.getCustomerReviews(customerId);
+      // 3. Fetch all reviews using customer ID
+      const reviewsResponse = await customerAPI.getCustomerReviews(custID);
       const reviews = reviewsResponse.data || [];
       
       // 4. Process bookings and enhance with service details
@@ -310,7 +339,9 @@ const Dashboard = () => {
 
   // Initial data load
   useEffect(() => {
-    fetchDashboardData();
+    if (user && user.email) {
+      fetchDashboardData();
+    }
   }, [user]);
 
   // Get status color for badges
@@ -342,7 +373,7 @@ const Dashboard = () => {
 
   // Handle booking click
   const handleBookingClick = (bookingId) => {
-    navigate(`/customer/bookings/${bookingId}`);
+    navigate(`/user/bookings/${bookingId}`);
   };
 
   if (isLoading) {
@@ -390,7 +421,7 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
         <Link
-          to="/customer/services"
+          to="/user/services"
           className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-center shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
         >
           <div className="space-y-2">
@@ -401,7 +432,7 @@ const Dashboard = () => {
           </div>
         </Link>
         <Link
-          to="/customer/bookings"
+          to="/user/bookings"
           className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-center shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
         >
           <div className="space-y-2">
@@ -412,7 +443,7 @@ const Dashboard = () => {
           </div>
         </Link>
         <Link
-          to="/customer/reviews"
+          to="/user/reviews"
           className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-center shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
         >
           <div className="space-y-2">
@@ -423,7 +454,7 @@ const Dashboard = () => {
           </div>
         </Link>
         <Link
-          to="/customer/profile"
+          to="/user/profile"
           className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-center shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
         >
           <div className="space-y-2">
@@ -456,7 +487,7 @@ const Dashboard = () => {
           </div>
           <div className="mt-4">
             <Link 
-              to="/customer/bookings"
+              to="/user/bookings"
               className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View all bookings
@@ -481,7 +512,7 @@ const Dashboard = () => {
           </div>
           <div className="mt-4">
             <Link 
-              to="/customer/bookings?filter=COMPLETED"
+              to="/user/bookings?filter=COMPLETED"
               className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View completed services
@@ -506,7 +537,7 @@ const Dashboard = () => {
           </div>
           <div className="mt-4">
             <Link 
-              to="/customer/bookings?filter=CONFIRMED"
+              to="/user/bookings?filter=CONFIRMED"
               className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View active bookings
@@ -532,7 +563,7 @@ const Dashboard = () => {
           </div>
           <div className="mt-4">
             <Link 
-              to="/customer/reviews"
+              to="/user/reviews"
               className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View my reviews
@@ -571,7 +602,7 @@ const Dashboard = () => {
           </h2>
           {upcomingBookings.length > 0 && (
             <Link
-              to="/customer/bookings?filter=CONFIRMED"
+              to="/user/bookings?filter=CONFIRMED"
               className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View All
@@ -637,7 +668,7 @@ const Dashboard = () => {
                 You don't have any upcoming bookings
               </p>
               <Link
-                to="/customer/services"
+                to="/user/services"
                 className="mt-4 inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
               >
                 <PlusIcon className="-ml-1 mr-2 h-4 w-4" />
@@ -656,7 +687,7 @@ const Dashboard = () => {
               Recent Bookings
             </h2>
             <Link
-              to="/customer/bookings"
+              to="/user/bookings"
               className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               View All
