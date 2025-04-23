@@ -635,7 +635,7 @@ const Services = () => {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Your business is still pending verification by RepairLink admins. Services are being saved but won't be visible to customers until your business is approved.
+                   Your business is still pending verification by RepairLink admins. Services can not be created and your business won't be visible to customers until is approved.
                 </p>
               </div>
             </div>

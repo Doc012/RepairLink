@@ -347,8 +347,7 @@ const vendorAPI = {
   },
 
   /**
-   * For backward compatibility - maps to getProviderByUserId
-   * Maintains compatibility with existing code
+   * For backward compatibility - gets the provider profile using correct API path
    * @returns {Promise} - Current user's provider profile if they have a valid token
    */
   getProfile: function() {
@@ -359,11 +358,20 @@ const vendorAPI = {
       return Promise.reject(new Error('No user email found'));
     }
     
-    // First get the user by email to get the correct user ID
-    return apiClient.get(`/v1/users/by-email/${userEmail}`)
+    console.log("Getting provider profile for email:", userEmail);
+    
+    // First get the user by email to get the userID
+    return apiClient.get(`/v1/users/by-email/${encodeURIComponent(userEmail)}`)
       .then(userResponse => {
+        if (!userResponse?.data || !userResponse.data.userID) {
+          throw new Error('User ID not found');
+        }
+        
         const userId = userResponse.data.userID;
-        return this.getProviderByUserId(userId);
+        console.log("Retrieved user ID:", userId);
+        
+        // Then get provider data using the user ID
+        return apiClient.get(`/v1/service-providers/by-user/${userId}`);
       });
   },
 

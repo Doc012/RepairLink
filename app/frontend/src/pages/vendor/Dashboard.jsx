@@ -190,48 +190,107 @@ const Dashboard = () => {
   const [noBusinessProfile, setNoBusinessProfile] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({});
 
-  // Fetch dashboard data
+  // Updated fetchDashboardData function for Dashboard.jsx
   const fetchDashboardData = async () => {
-    if (!user) return;
-    
     setIsLoading(true);
     setIsRefreshing(true);
     setError(null);
     setNoBusinessProfile(false);
     
     try {
-      // Step 1: Get provider profile to obtain the providerID
-      const profileResponse = await vendorAPI.getProfile();
-      const providerData = profileResponse.data;
+      // STEP 1: Get current authenticated user directly from the API
+      console.log("Fetching current user data...");
+      let currentUser;
+      
+      try {
+        const authResponse = await apiClient.get('/auth/me');
+        if (authResponse?.data?.email) {
+          currentUser = authResponse.data;
+          console.log("Retrieved user data directly from API:", currentUser.email);
+          // Update localStorage with the latest user data
+          localStorage.setItem('user', JSON.stringify(currentUser));
+        } else {
+          throw new Error("No user data returned from auth endpoint");
+        }
+      } catch (authError) {
+        console.error("Error fetching authenticated user:", authError);
+        throw new Error("Authentication failed. Please log in again.");
+      }
+      
+      // STEP 2: Get provider data using the email from auth response
+      console.log(`Fetching provider profile for email: ${currentUser.email}`);
+      let providerData;
+      
+      try {
+        // Step 2.1: First get user details by email to get the userID
+        console.log(`Getting user details by email: ${currentUser.email}`);
+        const userResponse = await apiClient.get(`/v1/users/by-email/${encodeURIComponent(currentUser.email)}`);
+        
+        if (!userResponse?.data || !userResponse.data.userID) {
+          throw new Error("Could not retrieve user details from email");
+        }
+        
+        const userId = userResponse.data.userID;
+        console.log("Retrieved user ID:", userId);
+        
+        // Step 2.2: Use the userID to get the provider data
+        console.log(`Getting provider data by userID: ${userId}`);
+        const providerResponse = await apiClient.get(`/v1/service-providers/by-user/${userId}`);
+        providerData = providerResponse.data;
+        console.log("Provider profile retrieved:", providerData);
+      } catch (providerError) {
+        console.error("Error fetching provider profile:", providerError);
+        
+        // Check if error indicates no business profile
+        if (providerError.response && 
+            (providerError.response.status === 404 || 
+             (providerError.response.status === 500 && 
+              providerError.response.data?.message?.includes('not found')))) {
+          setNoBusinessProfile(true);
+          throw new Error("Business profile not found. Please create a business profile.");
+        }
+        
+        throw new Error("Failed to retrieve provider profile. Please try again.");
+      }
+      
+      // Set provider data in state
       setProvider(providerData);
       
       if (!providerData || !providerData.providerID) {
-        throw new Error('Provider data not found or incomplete');
+        throw new Error("Provider data is incomplete. Please update your business profile.");
       }
       
       const providerID = providerData.providerID;
       
-      // Step 2: Get all services for this provider
-      const servicesResponse = await vendorAPI.getServices(providerID);
-      const services = servicesResponse.data || [];
+      // STEP 3: Load all required data in parallel for better performance
+      console.log("Fetching services, bookings and reviews for provider ID:", providerID);
       
-      // Step 3: Get all bookings for this provider
-      const bookingsResponse = await vendorAPI.getBookings(providerID);
-      const allBookings = bookingsResponse.data || [];
+      const [servicesResponse, bookingsResponse, reviewsResponse] = await Promise.allSettled([
+        apiClient.get(`/v1/services/provider/${providerID}`),
+        apiClient.get(`/v1/bookings/provider/${providerID}`),
+        apiClient.get(`/v1/reviews/provider/${providerID}`)
+          .catch(err => {
+            console.warn("Could not fetch reviews, using empty array instead:", err);
+            return { data: [] };
+          })
+      ]);
       
-      // Step 4: Get reviews from the public API
-      let reviews = [];
-      try {
-        const reviewsResponse = await vendorAPI.getReviews(providerID);
-        reviews = reviewsResponse.data || [];
-      } catch (reviewError) {
-        console.error('Error fetching reviews:', reviewError);
-      }
+      // Process services
+      const services = servicesResponse.status === 'fulfilled' ? servicesResponse.value.data || [] : [];
+      console.log(`Retrieved ${services.length} services`);
       
-      // Step 5: Process bookings data
+      // Process bookings
+      const allBookings = bookingsResponse.status === 'fulfilled' ? bookingsResponse.value.data || [] : [];
+      console.log(`Retrieved ${allBookings.length} bookings`);
+      
+      // Process reviews
+      const reviews = reviewsResponse.status === 'fulfilled' ? reviewsResponse.value.data || [] : [];
+      console.log(`Retrieved ${reviews.length} reviews`);
+      
+      // STEP 4: Calculate dashboard metrics
       const today = startOfToday();
       
-      // Filter bookings for today
+      // Today's bookings
       const todayBookings = allBookings.filter(booking => {
         try {
           const bookingDate = new Date(booking.appointmentDateTime || booking.bookingDate);
@@ -279,14 +338,14 @@ const Dashboard = () => {
       // Find next appointment
       const nextAppointment = upcoming[0] || null;
       
-      // Step 6: Calculate average rating from reviews
+      // Calculate average rating
       let averageRating = 0;
       if (reviews.length > 0) {
         const ratingSum = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
-        averageRating = ratingSum / reviews.length;
+        averageRating = parseFloat((ratingSum / reviews.length).toFixed(1));
       }
       
-      // Step 7: Generate chart data for last 7 days
+      // Generate chart data for last 7 days
       const last7Days = [];
       const bookingsByDate = {};
       const revenueByDate = {};
@@ -333,7 +392,7 @@ const Dashboard = () => {
         });
       }
       
-      // Step 8: Update state with all the calculated data
+      // STEP 5: Update state with all the calculated data
       setStats({
         todayBookings: todayBookings.length,
         pendingBookings: pendingBookings.length,
@@ -348,16 +407,76 @@ const Dashboard = () => {
       setUpcomingBookings(upcoming);
       setChartData(last7Days);
       
+      // STEP 6: Fetch customer details for recent and upcoming bookings
+      const uniqueCustomerIds = [...new Set(
+        [...recent, ...upcoming].map(booking => booking.customerID).filter(Boolean)
+      )];
+      
+      console.log(`Fetching details for ${uniqueCustomerIds.length} unique customers`);
+      
+      // Process each customer ID
+      for (const customerId of uniqueCustomerIds) {
+        if (!customerId || customerInfo[customerId]) continue;
+        
+        try {
+          // Step 1: Get customer's user ID
+          const customerResponse = await apiClient.get(`/v1/customers/${customerId}`);
+          
+          if (!customerResponse?.data || !customerResponse.data.userID) {
+            setCustomerInfo(prev => ({
+              ...prev,
+              [customerId]: { fullName: `Customer #${customerId}` }
+            }));
+            continue;
+          }
+          
+          const userId = customerResponse.data.userID;
+          
+          // Step 2: Get user details using user ID
+          const userResponse = await apiClient.get(`/v1/users/${userId}`);
+          
+          if (!userResponse?.data) {
+            setCustomerInfo(prev => ({
+              ...prev,
+              [customerId]: { fullName: `Customer #${customerId}` }
+            }));
+            continue;
+          }
+          
+          const userData = userResponse.data;
+          
+          // Step 3: Store the customer information in state
+          setCustomerInfo(prev => ({
+            ...prev,
+            [customerId]: {
+              name: userData.name || '',
+              surname: userData.surname || '',
+              email: userData.email || '',
+              phoneNumber: userData.phoneNumber || '',
+              fullName: userData.name && userData.surname 
+                ? `${userData.name} ${userData.surname}`
+                : `Customer #${customerId}`
+            }
+          }));
+        } catch (error) {
+          console.error(`Error fetching customer details for ID ${customerId}:`, error);
+          setCustomerInfo(prev => ({
+            ...prev,
+            [customerId]: { fullName: `Customer #${customerId}` }
+          }));
+        }
+      }
+      
+      console.log("Dashboard data loaded successfully");
+      
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       
-      // Check if error is related to missing business profile
-      if (error.response && error.response.status === 500 && 
-          (error.response.data.message?.includes('ServiceProvider not found') || 
-           error.message?.includes('Provider data not found'))) {
+      // Set proper error state based on the error message
+      if (error.message.includes('Business profile not found')) {
         setNoBusinessProfile(true);
       } else {
-        setError('Failed to load dashboard data. Please try again.');
+        setError(error.message || 'Failed to load dashboard data. Please try again.');
         toast.error('Failed to load dashboard data');
       }
     } finally {
@@ -367,10 +486,28 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
+    const loadDashboard = async () => {
+      try {
+        console.log("Initializing dashboard data...");
+        await fetchDashboardData();
+      } catch (error) {
+        console.error("Initial dashboard load failed:", error);
+        
+        // Try again after a short delay - this helps with timing issues in auth state
+        setTimeout(() => {
+          console.log("Retrying dashboard initialization...");
+          fetchDashboardData().catch(err => {
+            console.error("Dashboard retry also failed:", err);
+          });
+        }, 1000);
+      }
+    };
+    
+    loadDashboard();
+    
+    // We don't depend on user here because we're always fetching fresh data from the API
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Skip if no recent bookings
@@ -465,7 +602,7 @@ const Dashboard = () => {
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50',
       darkBgColor: 'dark:bg-blue-900/20',
-      link: '/vendor/bookings'
+      link: '/vendor/orders'
     },
     {
       title: 'Pending Bookings',
@@ -474,7 +611,7 @@ const Dashboard = () => {
       color: 'text-amber-600 dark:text-amber-400',
       bgColor: 'bg-amber-50',
       darkBgColor: 'dark:bg-amber-900/20',
-      link: '/vendor/bookings'
+      link: '/vendor/orders'
     },
     {
       title: "Today's Earnings",
@@ -544,7 +681,7 @@ const Dashboard = () => {
         </h1>
         <button
           onClick={fetchDashboardData}
-          className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
+          className="inline-flex items-center mr-8 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
           disabled={isRefreshing}
         >
           <ArrowPathIcon className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -707,7 +844,7 @@ const Dashboard = () => {
                   Upcoming Bookings
                 </h2>
                 <Link 
-                  to="/vendor/bookings" 
+                  to="/vendor/orders" 
                   className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   View all
@@ -759,7 +896,7 @@ const Dashboard = () => {
                 Recent Activity
               </h2>
               <Link 
-                to="/vendor/bookings" 
+                to="/vendor/orders" 
                 className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 View all bookings
