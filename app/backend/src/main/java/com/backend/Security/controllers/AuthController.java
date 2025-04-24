@@ -219,7 +219,64 @@ public class AuthController {
                     .body("Invalid authentication token");
         }
     }
-    
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        // Extract refresh token from cookie
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("No refresh token found");
+        }
+
+        String refreshToken = null;
+        for (Cookie cookie : cookies) {
+            if ("refresh_token".equals(cookie.getName())) {
+                refreshToken = cookie.getValue();
+                break;
+            }
+        }
+
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("No refresh token found");
+        }
+
+        try {
+            // Extract username from refresh token
+            String username = jwtService.extractUsername(refreshToken);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+            // Validate refresh token
+            if (jwtService.isTokenValid(refreshToken, userDetails)) {
+                // Generate new access token
+                String newAccessToken = jwtService.generateToken(userDetails);
+
+                // Create new access token cookie
+                Cookie accessTokenCookie = new Cookie("jwt", newAccessToken);
+                accessTokenCookie.setHttpOnly(true);
+                accessTokenCookie.setSecure(true); // Enable in production
+                accessTokenCookie.setPath("/");
+                accessTokenCookie.setMaxAge(24 * 60 * 60); // 24 hours
+
+                // Add cookie to response
+                response.addCookie(accessTokenCookie);
+
+                return ResponseEntity.ok()
+                        .body("Token refreshed successfully");
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Invalid refresh token");
+            }
+        } catch (ExpiredJwtException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Refresh token has expired");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing refresh token");
+        }
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
         try {
