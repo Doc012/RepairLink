@@ -277,6 +277,7 @@ public class AuthController {
         }
     }
 
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
         try {
