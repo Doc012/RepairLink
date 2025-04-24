@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   UserGroupIcon, 
@@ -189,6 +189,18 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [noBusinessProfile, setNoBusinessProfile] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({});
+  const [servicesMap, setServicesMap] = useState({});
+
+  // Add this function to fetch service details by ID
+  const fetchServiceById = async (serviceId) => {
+    try {
+      const response = await apiClient.get(`/v1/services/${serviceId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching service ${serviceId}:`, error);
+      return null;
+    }
+  };
 
   // Updated fetchDashboardData function for Dashboard.jsx
   const fetchDashboardData = async () => {
@@ -468,6 +480,35 @@ const Dashboard = () => {
       }
       
       console.log("Dashboard data loaded successfully");
+
+      // Extract unique service IDs from bookings
+      const uniqueServiceIds = [...new Set(
+        allBookings.map(booking => booking.serviceID).filter(Boolean)
+      )];
+      
+      console.log(`Found ${uniqueServiceIds.length} unique services to fetch`);
+      
+      // Fetch service details for each unique ID
+      const servicesData = {};
+      
+      // Use Promise.all to fetch services in parallel
+      const servicePromises = uniqueServiceIds.map(async (serviceId) => {
+        try {
+          const service = await fetchServiceById(serviceId);
+          if (service) {
+            servicesData[serviceId] = service;
+          }
+        } catch (err) {
+          console.error(`Error fetching service ${serviceId}:`, err);
+        }
+      });
+      
+      await Promise.all(servicePromises);
+      
+      // Store the services map in state
+      setServicesMap(servicesData);
+      
+      console.log('Services data loaded:', servicesData);
       
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -652,9 +693,29 @@ const Dashboard = () => {
     }
   };
 
-  const getServiceName = (booking) => {
-    return booking?.serviceName || 'Unnamed Service';
-  };
+  // Replace the existing getServiceName function with this improved version
+const getServiceName = (booking) => {
+  if (!booking) {
+    return 'Not Available';
+  }
+  
+  // If we have the service details in our map, use it
+  if (booking.serviceID && servicesMap[booking.serviceID]) {
+    return servicesMap[booking.serviceID].serviceName;
+  }
+  
+  // Otherwise fall back to other properties
+  if (booking.serviceName) {
+    return booking.serviceName;
+  } else if (booking.service && booking.service.serviceName) {
+    return booking.service.serviceName;
+  } else if (booking.service && booking.service.name) {
+    return booking.service.name;
+  } 
+  
+  // If all else fails, show the ID
+  return booking.serviceID ? `Service #${booking.serviceID}` : 'Unnamed Service';
+};
 
   const getCustomerDisplayName = (booking) => {
     if (!booking) {

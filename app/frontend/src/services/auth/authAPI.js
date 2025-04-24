@@ -38,6 +38,14 @@ const authAPI = {
   register: (userData) => {
     return apiClient.post('/auth/register', userData);
   },
+  
+  /**
+   * Refresh authentication token
+   * @returns {Promise} Refresh response
+   */
+  refreshToken: () => {
+    return apiClient.post('/auth/refresh-token', {});
+  },
 
   /**
    * Request password reset
