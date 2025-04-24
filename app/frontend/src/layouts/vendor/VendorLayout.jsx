@@ -29,6 +29,47 @@ const Tooltip = ({ children, text }) => (
   </div>
 );
 
+// New Confirmation Dialog component
+const ConfirmationDialog = ({ isOpen, title, message, onConfirm, onCancel, isLoading }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Overlay */}
+      <div 
+        className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" 
+        onClick={onCancel}
+      />
+      
+      {/* Dialog */}
+      <div className="z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
+        <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          {title}
+        </h3>
+        <p className="mb-6 text-gray-600 dark:text-slate-300">
+          {message}
+        </p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onCancel}
+            disabled={isLoading}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-70 dark:bg-red-700 dark:hover:bg-red-800"
+          >
+            {isLoading ? 'Logging out...' : 'Logout'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Navigation items for service provider
 const navigation = [
   { name: 'Dashboard', href: '/vendor/dashboard', icon: HomeIcon },               // Overview - always first
@@ -46,6 +87,7 @@ const VendorLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const { logout } = useAuth();
 
   // Mock vendor data (replace with actual data from your auth system)
@@ -69,14 +111,24 @@ const VendorLayout = () => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setShowLogoutConfirmation(true);
+  };
+
+  const handleCancelLogout = () => {
+    setShowLogoutConfirmation(false);
+  };
+
+  const handleConfirmLogout = async () => {
     try {
       setIsLoggingOut(true);
       await logout();
+      setShowLogoutConfirmation(false);
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
-      navigate('/login');
+      setShowLogoutConfirmation(false);
+      navigate('/login'); // Still redirect on error
     } finally {
       setIsLoggingOut(false);
     }
@@ -85,6 +137,16 @@ const VendorLayout = () => {
   return (
     <ThemeProvider>
       <div className="flex h-screen bg-gray-50 dark:bg-slate-900">
+        {/* Logout confirmation dialog */}
+        <ConfirmationDialog
+          isOpen={showLogoutConfirmation}
+          title="Confirm Logout"
+          message="Are you sure you want to log out of your account?"
+          onConfirm={handleConfirmLogout}
+          onCancel={handleCancelLogout}
+          isLoading={isLoggingOut}
+        />
+        
         {/* Sidebar */}
         <aside 
           className={`fixed inset-y-0 left-0 z-50 flex flex-col transform overflow-x-hidden border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-700 dark:bg-slate-800 
@@ -163,16 +225,18 @@ const VendorLayout = () => {
             {isDesktopCollapsed ? (
               <Tooltip text="Logout">
                 <button
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 hover:text-red-600 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                  disabled={isLoggingOut}
                 >
                   <ArrowRightOnRectangleIcon className="h-5 w-5" />
                 </button>
               </Tooltip>
             ) : (
               <button
-                onClick={handleLogout}
+                onClick={handleLogoutClick}
                 className="flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                disabled={isLoggingOut}
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
                 <span className="ml-3">Logout</span>

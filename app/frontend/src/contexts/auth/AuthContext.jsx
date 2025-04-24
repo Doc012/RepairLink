@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../../utils/apiClient';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext(null);
 
@@ -12,8 +13,29 @@ export const AuthProvider = ({ children }) => {
   // Use a ref to track last check time
   const lastCheckTime = useRef(0);
 
-  // Throttled auth status check - doesn't run more than once every 5 seconds
-  const checkAuthStatus = useCallback(async () => {
+  // Store user data in localStorage for persistence
+  const storeUserData = (userData) => {
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    } else {
+      localStorage.removeItem('user');
+    }
+  };
+
+  // Load user from localStorage on initial mount
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error('Error loading stored user:', error);
+    }
+  }, []);
+
+  // Throttled auth status check with token refresh capability
+  const checkAuthStatus = useCallback(async (skipLoading = false) => {
     // Prevent concurrent auth checks
     if (isCheckingAuth.current) return false;
     
@@ -27,27 +49,31 @@ export const AuthProvider = ({ children }) => {
     lastCheckTime.current = now;
     
     try {
-      const response = await axios.get('http://localhost:8080/api/auth/me', {
-        withCredentials: true
-      });
+      const response = await apiClient.get('/auth/me');
       
-      setUser({
+      const userData = {
         email: response.data.email,
         name: response.data.name,
         surname: response.data.surname,
         phoneNumber: response.data.phoneNumber,
         roles: response.data.roles.map(role => ({ authority: role }))
-      });
+      };
       
+      setUser(userData);
+      storeUserData(userData);
       return true;
     } catch (error) {
-      // Only clear user if we get an auth error, not on network errors
+      // If a 401 error occurs, the token refresh will be handled by apiClient
+      // If we still get here, it means the refresh also failed
       if (error.response?.status === 401 || error.response?.status === 403) {
         setUser(null);
+        storeUserData(null);
       }
       return false;
     } finally {
-      setLoading(false);
+      if (!skipLoading) {
+        setLoading(false);
+      }
       isCheckingAuth.current = false;
     }
   }, [user]);
@@ -57,29 +83,41 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, [checkAuthStatus]);
 
+  // Periodic auth check to keep the session alive
+  useEffect(() => {
+    let interval;
+    if (user) {
+      interval = setInterval(() => {
+        checkAuthStatus(true);
+      }, 4 * 60 * 1000); // Check every 4 minutes
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [user, checkAuthStatus]);
+
   const login = async (email, password) => {
     try {
       console.log('Attempting login for:', email);
       
-      const response = await axios.post(
-        'http://localhost:8080/api/auth/login',
-        { email, password },
-        { withCredentials: true }
-      );
+      const response = await apiClient.post('/auth/login', { email, password });
       
       console.log('Login response:', response.data);
       
       // Store user data directly from the login response
-      setUser({
+      const userData = {
         email: response.data.email,
         name: response.data.name,
         surname: response.data.surname,
         phoneNumber: response.data.phoneNumber,
         roles: response.data.roles || []
-      });
+      };
       
-      // After successful login, check auth status to update context
-      await checkAuthStatus();
+      setUser(userData);
+      storeUserData(userData);
       
       return {
         success: true,
@@ -92,12 +130,9 @@ export const AuthProvider = ({ children }) => {
       let errorMessage;
       
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         if (error.response.status === 401) {
           errorMessage = error.response.data || 'Invalid email or password';
         } else if (error.response.status === 403) {
-          // Show the actual message from the backend for 403 errors
           errorMessage = error.response.data || 'You do not have permission to access this resource';
         } else if (error.response.status === 404) {
           errorMessage = error.response.data || 'The requested resource could not be found';
@@ -105,10 +140,8 @@ export const AuthProvider = ({ children }) => {
           errorMessage = error.response.data?.message || error.response.data || 'An error occurred during login';
         }
       } else if (error.request) {
-        // The request was made but no response was received
         errorMessage = 'No response from server. Please check your internet connection.';
       } else {
-        // Something happened in setting up the request that triggered an Error
         errorMessage = 'Unable to send login request. Please try again later.';
       }
       
@@ -125,12 +158,11 @@ export const AuthProvider = ({ children }) => {
       isCheckingAuth.current = true;
       
       // Call the logout API endpoint
-      const response = await axios.post('http://localhost:8080/api/auth/logout', {}, {
-        withCredentials: true // Important: Ensures cookies are sent with the request
-      });
+      const response = await apiClient.post('/auth/logout', {});
       
       // Clear the user data
       setUser(null);
+      storeUserData(null);
       
       console.log('Logout successful:', response.data);
       return true;
@@ -139,6 +171,7 @@ export const AuthProvider = ({ children }) => {
       
       // Even if the API call fails, clear the user data for client-side logout
       setUser(null);
+      storeUserData(null);
       
       throw error;
     } finally {
@@ -149,10 +182,7 @@ export const AuthProvider = ({ children }) => {
   // Registration function
   const register = async (userData) => {
     try {
-      const response = await axios.post(
-        'http://localhost:8080/api/auth/register',
-        userData
-      );
+      const response = await apiClient.post('/auth/register', userData);
       
       return {
         success: true,
@@ -172,15 +202,29 @@ export const AuthProvider = ({ children }) => {
     return user.roles.some(r => r.authority === role);
   };
 
+  // Function to get current user, with refresh if needed
+  const getCurrentUser = async () => {
+    if (user) return user;
+    
+    // Try to refresh auth status
+    const isAuthenticated = await checkAuthStatus();
+    if (isAuthenticated) {
+      return user;
+    }
+    
+    return null;
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       loading, 
       login, 
       logout, 
-      register,  // Add the register function
+      register,
       checkAuthStatus,
       hasRole,
+      getCurrentUser,
       isAuthenticated: !!user
     }}>
       {children}
