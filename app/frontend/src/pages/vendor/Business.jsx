@@ -96,8 +96,9 @@ const formatDuration = (minutes) => {
 };
 
 // Add this utility function in your component
+// Update this utility function to avoid console.error
 const handleApiError = (error, defaultMessage) => {
-  console.error(defaultMessage, error);
+  // Remove the console.error line
   
   // Extract message from error response or use default
   const errorMsg = error.response?.data?.message || 
@@ -207,9 +208,7 @@ const fetchBusinessData = async () => {
     const profileResponse = await vendorAPI.getProfile();
     const providerData = profileResponse.data;
     
-    console.log("Provider data loaded:", providerData);
-    
-    // Update state with existing business data
+    // Update state with existing business data (no console.log)
     setBusiness({
       businessName: providerData.businessName || "",
       serviceCategory: providerData.serviceCategory || "",
@@ -238,14 +237,14 @@ const fetchBusinessData = async () => {
         duration: service.duration
       }));
       
-      console.log("Services loaded:", mappedServices);
+      // Set services state (no console.log)
       setServices(mappedServices);
     } catch (servicesError) {
-      console.error("Error fetching services:", servicesError);
+      // Silent error handling without console.error
       toast.error("Failed to load services. Please refresh the page.");
     }
   } catch (error) {
-    console.error("Error fetching business data:", error);
+    // Silent error handling without console.error
     
     // Provider doesn't exist yet, show onboarding flow
     setProviderExists(false);
@@ -264,7 +263,7 @@ const fetchBusinessData = async () => {
           phoneNumber: userData.phoneNumber || ""
         }));
       } catch (userError) {
-        console.error("Error fetching user data:", userError);
+        // Silent handling without console.error
       }
     }
   } finally {

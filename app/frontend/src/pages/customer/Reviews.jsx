@@ -262,7 +262,6 @@ const getCustomerID = async (email) => {
       throw new Error('Failed to get customer details');
     }
     
-    console.log('Customer ID found:', customerData.customerID);
     return customerData.customerID;
   } catch (err) {
     console.error('Error fetching customer ID:', err);

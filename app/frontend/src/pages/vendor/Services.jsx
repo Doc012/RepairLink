@@ -11,7 +11,9 @@ import {
   ArrowPathIcon,
   BuildingStorefrontIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  StarIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,6 +21,7 @@ import { formatCurrency } from '../../utils/formatCurrency';
 import { useAuth } from '../../contexts/auth/AuthContext';
 import vendorAPI from '../../services/vendor/vendorAPI';
 import userAPI from '../../services/auth/userAPI';
+import publicAPI from '../../services/public/publicAPI';
 import { toast } from 'react-hot-toast';
 
 // Business Setup Guide component for new vendors
@@ -150,6 +153,8 @@ const Services = () => {
   const [formErrors, setFormErrors] = useState({});
   const [providerData, setProviderData] = useState(null);
   const [noBusinessProfile, setNoBusinessProfile] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [viewingReviews, setViewingReviews] = useState(null);
 
   const [formData, setFormData] = useState({
     serviceName: '',
@@ -157,6 +162,9 @@ const Services = () => {
     price: '',
     duration: ''
   });
+
+  // Add this with your other state variables at the top of the Services component
+const [groupedServices, setGroupedServices] = useState({});
 
   // Fetch services on component mount
   useEffect(() => {
@@ -179,86 +187,140 @@ const Services = () => {
     }
   }, [editingService]);
 
-  const fetchServices = async () => {
-    if (!user) {
+  // Update the fetchServices function to include review information
+
+// Update the fetchServices function to properly count bookings for each service
+const fetchServices = async () => {
+  if (!user) {
+    setIsLoading(false);
+    return;
+  }
+  
+  setIsLoading(true);
+  setIsRefreshing(true);
+  
+  try {
+    // Start by getting the user ID from email
+    const userResponse = await userAPI.getUserByEmail(user.email);
+    const userDetails = userResponse.data;
+    
+    if (!userDetails || !userDetails.userID) {
+      setError("User ID not found. Please check your account.");
       setIsLoading(false);
       return;
     }
     
-    setIsLoading(true);
-    setIsRefreshing(true);
-    
     try {
-      // Start by getting the user ID from email
-      const userResponse = await userAPI.getUserByEmail(user.email);
-      const userDetails = userResponse.data;
+      // Try to get provider details using user ID
+      const profileResponse = await vendorAPI.getProviderByUserId(userDetails.userID);
+      const provider = profileResponse.data;
+      setProviderData(provider);
       
-      if (!userDetails || !userDetails.userID) {
-        setError("User ID not found. Please check your account.");
-        setIsLoading(false);
-        return;
-      }
+      // Fetch services
+      const servicesResponse = await vendorAPI.getServices(provider.providerID);
       
-      try {
-        // Try to get provider details using user ID
-        const profileResponse = await vendorAPI.getProviderByUserId(userDetails.userID);
-        const provider = profileResponse.data;
-        setProviderData(provider);
-        
-        // Fetch services
-        const servicesResponse = await vendorAPI.getServices(provider.providerID);
-        
-        // Format service data consistently
-        const formattedServices = (servicesResponse.data || []).map(service => ({
-          id: service.serviceID || service.id,
-          serviceName: service.serviceName || service.name,
-          description: service.description || '',
-          price: service.price || 0,
-          duration: service.duration || '',
-          category: service.category || 'Uncategorized',
-          bookingCount: 0
-        }));
-        
-        setServices(formattedServices);
-        
-        // Fetch booking statistics 
+      // Format service data consistently
+      const formattedServices = (servicesResponse.data || []).map(service => ({
+        id: service.serviceID || service.id,
+        serviceName: service.serviceName || service.name,
+        description: service.description || '',
+        price: service.price || 0,
+        duration: service.duration || '',
+        category: service.category || 'Uncategorized',
+        bookingCount: 0, // Initialize with 0, will be updated below
+        reviewCount: 0,
+        averageRating: 0
+      }));
+      
+      // Fetch ALL bookings to properly count them by service
+      const bookingsResponse = await vendorAPI.getBookings(provider.providerID);
+      const allBookings = bookingsResponse.data || [];
+      
+      // Count bookings by service ID
+      const bookingsByService = {};
+      allBookings.forEach(booking => {
+        const serviceId = booking.serviceID;
+        if (!bookingsByService[serviceId]) {
+          bookingsByService[serviceId] = 0;
+        }
+        bookingsByService[serviceId]++;
+      });
+      
+      // Create service stats with accurate booking counts
+      const stats = {};
+      formattedServices.forEach(service => {
+        stats[service.id] = {
+          bookingCount: bookingsByService[service.id] || 0
+        };
+      });
+      
+      setServiceStats(stats);
+      
+      // Enhance services with review data
+      const enhancedServices = await Promise.all(formattedServices.map(async (service) => {
         try {
-          const statsResponse = await vendorAPI.getBookingStats(provider.providerID);
-          const serviceBookings = statsResponse.data?.serviceBookings || {};
+          // Get review summary for this service
+          const reviewResponse = await publicAPI.getServiceReviews(service.id);
+          const reviews = reviewResponse.data || [];
           
-          // Create stats for each service
-          const stats = {};
-          formattedServices.forEach(service => {
-            stats[service.id] = {
-              bookingCount: serviceBookings[service.id] || 0
+          // Update the service with booking count from our calculated stats
+          const updatedService = {
+            ...service,
+            bookingCount: bookingsByService[service.id] || 0
+          };
+          
+          if (reviews.length > 0) {
+            // Calculate average rating
+            const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+            const averageRating = totalRating / reviews.length;
+            
+            return {
+              ...updatedService,
+              reviewCount: reviews.length,
+              averageRating: averageRating
             };
-          });
+          }
           
-          setServiceStats(stats);
-        } catch (statsError) {
-          console.error('Error fetching service statistics:', statsError);
+          return updatedService;
+        } catch (err) {
+          return {
+            ...service,
+            bookingCount: bookingsByService[service.id] || 0
+          };
         }
-      } catch (providerError) {
-        console.error("Provider error:", providerError);
-        
-        // Check if error is specific to missing business profile
-        if (providerError.response && 
-            providerError.response.status === 500 && 
-            providerError.response.data.message?.includes('ServiceProvider not found')) {
-          setNoBusinessProfile(true);
-        } else {
-          toast.error("Error loading profile data");
-          console.error(providerError);
+      }));
+      
+      // Group services by category
+      const groupedServices = enhancedServices.reduce((groups, service) => {
+        const category = service.category || 'Uncategorized';
+        if (!groups[category]) {
+          groups[category] = [];
         }
+        groups[category].push(service);
+        return groups;
+      }, {});
+      
+      setServices(enhancedServices);
+      setGroupedServices(groupedServices);
+      
+    } catch (providerError) {
+      // Check if error is specific to missing business profile
+      if (providerError.response && 
+          providerError.response.status === 500 && 
+          providerError.response.data.message?.includes('ServiceProvider not found')) {
+        setNoBusinessProfile(true);
+      } else {
+        toast.error("Error loading profile data");
+        console.error(providerError);
       }
-    } catch (error) {
-      console.error('Error fetching services:', error);
-      toast.error('Failed to load services');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
     }
-  };
+  } catch (error) {
+    toast.error('Failed to load services');
+  } finally {
+    setIsLoading(false);
+    setIsRefreshing(false);
+  }
+};
 
   const resetForm = () => {
     setFormData({
@@ -358,7 +420,6 @@ const Services = () => {
       resetForm();
       setEditingService(null);
     } catch (error) {
-      console.error('Error saving service:', error);
       toast.error(editingService ? 'Failed to update service' : 'Failed to add service');
     } finally {
       setIsSubmitting(false);
@@ -375,7 +436,6 @@ const Services = () => {
       setServices(services.filter(service => service.id !== serviceId));
       toast.success('Service deleted successfully');
     } catch (error) {
-      console.error('Error deleting service:', error);
       toast.error('Failed to delete service');
     }
   };
@@ -419,16 +479,6 @@ const Services = () => {
   };
 
   const stats = calculateStats();
-
-  // Group services by category
-  const groupedServices = services.reduce((groups, service) => {
-    const category = service.category || 'Uncategorized';
-    if (!groups[category]) {
-      groups[category] = [];
-    }
-    groups[category].push(service);
-    return groups;
-  }, {});
 
   // Render content based on loading/error/noBusinessProfile state
   const renderContent = () => {
@@ -610,11 +660,53 @@ const Services = () => {
                             </div>
                           </div>
                           
-                          <div className="mt-4 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                          {/* Bookings count */}
+                          <div className="mt-3 flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <CalendarDaysIcon className="mr-1 h-4 w-4" />
                             <span>
                               {serviceStats[service.id]?.bookingCount || 0} booking{(serviceStats[service.id]?.bookingCount || 0) !== 1 ? 's' : ''}
                             </span>
+                          </div>
+                          
+                          {/* Ratings and Reviews section */}
+                          <div className="mt-3 flex items-center justify-between">
+                            {/* Star Rating Display */}
+                            <div className="flex items-center">
+                              {service.averageRating > 0 ? (
+                                <div className="flex items-center">
+                                  <div className="flex text-yellow-400">
+                                    {[...Array(5)].map((_, i) => (
+                                      <StarIcon
+                                        key={i}
+                                        className={`h-4 w-4 ${
+                                          i < Math.floor(service.averageRating) 
+                                            ? 'text-yellow-400' 
+                                            : i < Math.ceil(service.averageRating) && service.averageRating % 1 > 0
+                                              ? 'text-yellow-400/50'
+                                              : 'text-gray-300 dark:text-gray-600'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="ml-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {service.averageRating.toFixed(1)}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-gray-500 dark:text-gray-400">No ratings</span>
+                              )}
+                            </div>
+                            
+                            {/* View Reviews button - only shown when there are reviews */}
+                            {(service.reviewCount > 0 || service.averageRating > 0) && (
+                              <button
+                                onClick={() => setSelectedService(service)}
+                                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              >
+                                <StarIcon className="mr-1 h-4 w-4" />
+                                View Reviews
+                              </button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
@@ -835,12 +927,117 @@ const Services = () => {
             </div>
           </div>
         )}
+
+        {/* Service Reviews Modal */}
+        {selectedService && (
+          <ServiceReviewsModal
+            serviceId={selectedService.id}
+            serviceName={selectedService.serviceName}
+            onClose={() => setSelectedService(null)}
+          />
+        )}
+        {viewingReviews && (
+          <ServiceReviewsModal 
+            serviceId={viewingReviews.id} 
+            serviceName={viewingReviews.name}
+            onClose={() => setViewingReviews(null)}
+          />
+        )}
       </div>
     );
   };
 
   // Don't use early returns - always return renderContent()
   return renderContent();
+};
+
+const ServiceReviewsModal = ({ serviceId, serviceName, onClose }) => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      setLoading(true);
+      try {
+        // Use the existing API endpoint for service reviews
+        const response = await publicAPI.getServiceReviews(serviceId);
+        setReviews(response.data || []);
+      } catch (err) {
+        setError("Failed to load reviews");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [serviceId]);
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all dark:bg-slate-800 sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle">
+          <div className="px-4 pb-4 pt-5 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Reviews for {serviceName}
+              </h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-current border-r-transparent text-blue-600 motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8 text-red-500">{error}</div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                No reviews yet for this service.
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {reviews.map(review => (
+                  <div key={review.id} className="border-b border-gray-200 dark:border-slate-700 pb-4 last:border-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="flex text-yellow-400">
+                          {[...Array(5)].map((_, i) => (
+                            <StarIcon 
+                              key={i} 
+                              className={`h-5 w-5 ${i < Math.round(review.rating) ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`} 
+                            />
+                          ))}
+                        </div>
+                        <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {review.rating.toFixed(1)}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                      {review.comment}
+                    </p>
+                    <div className="mt-2 flex items-center">
+                      <UserIcon className="h-4 w-4 text-gray-400 mr-1" />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {review.customerName || 'Anonymous Customer'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Services;

@@ -264,7 +264,6 @@ const Orders = () => {
           setOrders(processedBookings);
           
         } catch (providerError) {
-          console.error("Provider error:", providerError);
           // Check if error is specific to missing business profile
           if (providerError.response && 
               providerError.response.status === 500 && 
@@ -276,7 +275,6 @@ const Orders = () => {
         }
         
       } catch (err) {
-        console.error("Error loading bookings:", err);
         if (!noBusinessProfile) {
           setError("Failed to load bookings. Please try again later.");
           toast.error("Failed to load bookings");
