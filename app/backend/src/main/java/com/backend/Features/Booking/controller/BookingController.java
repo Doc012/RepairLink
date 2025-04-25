@@ -5,6 +5,7 @@ import com.backend.Features.Booking.dto.BookingResponse;
 import com.backend.Features.Booking.enums.BookingStatus;
 import com.backend.Features.Booking.service.BookingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BookingController {
     private final BookingService bookingService;
+
+
+    @Autowired
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
 
     @PostMapping("/customer")
     public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest bookingRequest) {
