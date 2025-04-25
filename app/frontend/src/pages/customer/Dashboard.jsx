@@ -189,7 +189,6 @@ const Dashboard = () => {
         throw new Error('Failed to get customer details');
       }
       
-      console.log('Customer ID found:', customerData.customerID);
       setCustomerID(customerData.customerID);
       
       // Set name from user data

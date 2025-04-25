@@ -416,22 +416,6 @@ const Home = () => {
           </motion.div>
         </motion.div>
       </section>
-
-      {/* Add floating CTA button */}
-      {/* <motion.div
-        className="fixed bottom-8 right-8 z-50"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1 }}
-      >
-        <Button
-          to="/register"
-          variant="primary"
-          className="shadow-lg hover:shadow-xl transform transition-all hover:scale-105"
-        >
-          Book a Service
-        </Button>
-      </motion.div> */}
     </div>
   );
 };

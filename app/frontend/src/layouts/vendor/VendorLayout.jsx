@@ -94,7 +94,7 @@ const VendorLayout = () => {
   const [vendor] = useState({
     name: "John",
     surname: "Smith",
-    businessName: "Smith's Auto Repair",
+    businessName: "RepairLink",
     picUrl: "/src/assets/images/hero/repair-3.jpg"
   });
 

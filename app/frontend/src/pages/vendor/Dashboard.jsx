@@ -27,6 +27,19 @@ import { format, parseISO, isToday, isThisWeek, addDays, startOfToday, subDays }
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import apiClient from '../../utils/apiClient';
 
+// Add this helper at the top of your file (outside the component)
+const DEBUG_MODE = false; // Set to true only when debugging
+
+const log = (message, data = null) => {
+  if (DEBUG_MODE) {
+    if (data) {
+      console.log(`[Dashboard] ${message}`, data);
+    } else {
+      console.log(`[Dashboard] ${message}`);
+    }
+  }
+};
+
 // Status badge component
 const StatusBadge = ({ status }) => {
   const statusConfig = {
@@ -197,7 +210,6 @@ const Dashboard = () => {
       const response = await apiClient.get(`/v1/services/${serviceId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching service ${serviceId}:`, error);
       return null;
     }
   };
@@ -211,31 +223,26 @@ const Dashboard = () => {
     
     try {
       // STEP 1: Get current authenticated user directly from the API
-      console.log("Fetching current user data...");
       let currentUser;
       
       try {
         const authResponse = await apiClient.get('/auth/me');
         if (authResponse?.data?.email) {
           currentUser = authResponse.data;
-          console.log("Retrieved user data directly from API:", currentUser.email);
           // Update localStorage with the latest user data
           localStorage.setItem('user', JSON.stringify(currentUser));
         } else {
           throw new Error("No user data returned from auth endpoint");
         }
       } catch (authError) {
-        console.error("Error fetching authenticated user:", authError);
         throw new Error("Authentication failed. Please log in again.");
       }
       
       // STEP 2: Get provider data using the email from auth response
-      console.log(`Fetching provider profile for email: ${currentUser.email}`);
       let providerData;
       
       try {
         // Step 2.1: First get user details by email to get the userID
-        console.log(`Getting user details by email: ${currentUser.email}`);
         const userResponse = await apiClient.get(`/v1/users/by-email/${encodeURIComponent(currentUser.email)}`);
         
         if (!userResponse?.data || !userResponse.data.userID) {
@@ -243,16 +250,11 @@ const Dashboard = () => {
         }
         
         const userId = userResponse.data.userID;
-        console.log("Retrieved user ID:", userId);
         
         // Step 2.2: Use the userID to get the provider data
-        console.log(`Getting provider data by userID: ${userId}`);
         const providerResponse = await apiClient.get(`/v1/service-providers/by-user/${userId}`);
         providerData = providerResponse.data;
-        console.log("Provider profile retrieved:", providerData);
       } catch (providerError) {
-        console.error("Error fetching provider profile:", providerError);
-        
         // Check if error indicates no business profile
         if (providerError.response && 
             (providerError.response.status === 404 || 
@@ -275,29 +277,21 @@ const Dashboard = () => {
       const providerID = providerData.providerID;
       
       // STEP 3: Load all required data in parallel for better performance
-      console.log("Fetching services, bookings and reviews for provider ID:", providerID);
-      
       const [servicesResponse, bookingsResponse, reviewsResponse] = await Promise.allSettled([
         apiClient.get(`/v1/services/provider/${providerID}`),
         apiClient.get(`/v1/bookings/provider/${providerID}`),
         apiClient.get(`/v1/reviews/provider/${providerID}`)
-          .catch(err => {
-            console.warn("Could not fetch reviews, using empty array instead:", err);
-            return { data: [] };
-          })
+          .catch(() => ({ data: [] }))
       ]);
       
       // Process services
       const services = servicesResponse.status === 'fulfilled' ? servicesResponse.value.data || [] : [];
-      console.log(`Retrieved ${services.length} services`);
       
       // Process bookings
       const allBookings = bookingsResponse.status === 'fulfilled' ? bookingsResponse.value.data || [] : [];
-      console.log(`Retrieved ${allBookings.length} bookings`);
       
       // Process reviews
       const reviews = reviewsResponse.status === 'fulfilled' ? reviewsResponse.value.data || [] : [];
-      console.log(`Retrieved ${reviews.length} reviews`);
       
       // STEP 4: Calculate dashboard metrics
       const today = startOfToday();
@@ -424,8 +418,6 @@ const Dashboard = () => {
         [...recent, ...upcoming].map(booking => booking.customerID).filter(Boolean)
       )];
       
-      console.log(`Fetching details for ${uniqueCustomerIds.length} unique customers`);
-      
       // Process each customer ID
       for (const customerId of uniqueCustomerIds) {
         if (!customerId || customerInfo[customerId]) continue;
@@ -471,22 +463,17 @@ const Dashboard = () => {
             }
           }));
         } catch (error) {
-          console.error(`Error fetching customer details for ID ${customerId}:`, error);
           setCustomerInfo(prev => ({
             ...prev,
             [customerId]: { fullName: `Customer #${customerId}` }
           }));
         }
       }
-      
-      console.log("Dashboard data loaded successfully");
 
       // Extract unique service IDs from bookings
       const uniqueServiceIds = [...new Set(
         allBookings.map(booking => booking.serviceID).filter(Boolean)
       )];
-      
-      console.log(`Found ${uniqueServiceIds.length} unique services to fetch`);
       
       // Fetch service details for each unique ID
       const servicesData = {};
@@ -499,7 +486,7 @@ const Dashboard = () => {
             servicesData[serviceId] = service;
           }
         } catch (err) {
-          console.error(`Error fetching service ${serviceId}:`, err);
+          // Silently handle service fetch errors
         }
       });
       
@@ -508,11 +495,7 @@ const Dashboard = () => {
       // Store the services map in state
       setServicesMap(servicesData);
       
-      console.log('Services data loaded:', servicesData);
-      
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      
       // Set proper error state based on the error message
       if (error.message.includes('Business profile not found')) {
         setNoBusinessProfile(true);
@@ -529,16 +512,11 @@ const Dashboard = () => {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        console.log("Initializing dashboard data...");
         await fetchDashboardData();
       } catch (error) {
-        console.error("Initial dashboard load failed:", error);
-        
         // Try again after a short delay - this helps with timing issues in auth state
         setTimeout(() => {
-          console.log("Retrying dashboard initialization...");
           fetchDashboardData().catch(err => {
-            console.error("Dashboard retry also failed:", err);
           });
         }, 1000);
       }
@@ -612,7 +590,6 @@ const Dashboard = () => {
             return updatedInfo;
           });
         } catch (error) {
-          console.error(`Error fetching customer details for ID ${customerId}:`, error);
           // Add fallback to avoid refetching failed customer IDs
           setCustomerInfo(prev => ({
             ...prev,

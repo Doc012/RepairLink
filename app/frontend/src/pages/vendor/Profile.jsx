@@ -69,17 +69,6 @@ const ProfileSkeleton = () => (
 const VendorProfile = () => {
   const { user, isAuthenticated } = useAuth();
   
-  // Add debugging for auth context
-  useEffect(() => {
-    console.log("Auth Context:", { user, isAuthenticated });
-    console.log("localStorage user:", localStorage.getItem('user'));
-  }, [user, isAuthenticated]);
-  
-  // Add this near the top of your component to check available methods
-  useEffect(() => {
-    console.log("Available userAPI methods:", Object.keys(userAPI));
-  }, []);
-  
   const [profile, setProfile] = useState({
     name: '',
     surname: '',
@@ -160,31 +149,25 @@ const fetchProfile = async () => {
         localStorageUser = JSON.parse(storedUser);
       }
     } catch (e) {
-      console.error("Error parsing user from localStorage:", e);
+      // Silent error handling - no console.log
     }
     
     // Select the user data source - prioritize auth context when emails differ
     let userData = null;
     
     if (authEmail && localStorageUser?.email && authEmail !== localStorageUser.email) {
-      console.log("Email mismatch detected! Using auth context email instead of localStorage");
-      console.log(`Auth email: ${authEmail}, localStorage email: ${localStorageUser.email}`);
-      
       // Use auth context as source of truth for email
       userData = { ...localStorageUser, email: authEmail };
     } else if (localStorageUser) {
       // Use localStorage when emails match or auth has no email
       userData = localStorageUser;
-      console.log("Using userData from localStorage:", userData);
     } else if (user) {
       // Fall back to auth context if localStorage is empty
       userData = user;
-      console.log("Using userData from auth context:", userData);
     }
     
     // Check if we have valid user data
     if (!userData || (!userData.email && !userData.userID)) {
-      console.error("No valid user data available");
       toast.error("Unable to fetch your profile. Please log in again.");
       return;
     }
@@ -193,10 +176,8 @@ const fetchProfile = async () => {
     try {
       // First try to get user by email from the context
       if (userData.email) {
-        console.log("Looking up user by email:", userData.email);
         const userResponse = await userAPI.getUserByEmail(userData.email);
         const userInfo = userResponse.data;
-        console.log("User info retrieved by email:", userInfo);
         
         // Now get vendor data using the correct user ID
         const correctUserID = userInfo.userID;
@@ -208,16 +189,10 @@ const fetchProfile = async () => {
         // Get vendor-specific business info using the correct userID
         let vendorData = {};
         try {
-          // REPLACE THIS:
-          // const vendorResponse = await apiClient.get(`/v1/service-providers/by-user/${correctUserID}`);
-          
-          // WITH THIS:
           const vendorResponse = await vendorAPI.getProviderByUserId(correctUserID);
-          
           vendorData = vendorResponse.data || {};
-          console.log("Vendor data retrieved:", vendorData);
         } catch (vendorError) {
-          console.error("Failed to fetch vendor data:", vendorError);
+          // Silent error handling - no console.log
         }
         
         // Map the API data to profile state, combining user and vendor data
@@ -241,8 +216,6 @@ const fetchProfile = async () => {
           providerID: vendorData.providerID || null
         };
         
-        console.log("Setting profile data with correct userID:", profileData);
-        
         // Update localStorage with the correct user information to prevent future issues
         const updatedLocalStorageUser = {
           ...localStorageUser,
@@ -254,7 +227,6 @@ const fetchProfile = async () => {
           roles: userInfo.roleType ? [{ authority: `ROLE_${userInfo.roleType.roleType}` }] : []
         };
         
-        console.log("Updating localStorage with correct user info:", updatedLocalStorageUser);
         localStorage.setItem('user', JSON.stringify(updatedLocalStorageUser));
         
         setProfile(profileData);
@@ -270,11 +242,9 @@ const fetchProfile = async () => {
         });
       }
     } catch (apiError) {
-      console.error("API Error:", apiError);
       toast.error("Failed to fetch profile data.");
     }
   } catch (error) {
-    console.error("Error in fetchProfile:", error);
     toast.error("An error occurred while fetching your profile.");
   } finally {
     setIsLoading(false);
@@ -324,8 +294,6 @@ const handleSave = async () => {
       throw new Error("User ID not found");
     }
     
-    // Validate form data (keep all your validations)
-    
     // Create basic user info update payload
     const userUpdateData = {
       name: editFormData.name,
@@ -347,30 +315,25 @@ const handleSave = async () => {
       vendorUpdateData.providerID = profile.providerID;
     }
     
-    // Call API to update user profile - try available methods
+    // Call API to update user profile
     try {
       if (typeof userAPI.updateProfile === 'function') {
         await userAPI.updateProfile(profile.userID, userUpdateData);
       } else if (typeof userAPI.updateUser === 'function') {
         await userAPI.updateUser(profile.userID, userUpdateData);
-      } else {
-        console.warn("No suitable update method found for user profile");
       }
     } catch (userUpdateError) {
-      console.error("Error updating user profile:", userUpdateError);
       throw new Error("Failed to update user information");
     }
     
     // Call API to update vendor profile directly
     try {
       if (profile.providerID) {
-        // Update existing provider - try available methods
+        // Update existing provider
         if (typeof vendorAPI.updateProfile === 'function') {
           await vendorAPI.updateProfile(vendorUpdateData);
         } else if (typeof vendorAPI.updateProvider === 'function') {
           await vendorAPI.updateProvider(profile.providerID, vendorUpdateData);
-        } else {
-          console.warn("No suitable update method found for vendor profile");
         }
       } else {
         // Create new provider if it doesn't exist
@@ -381,12 +344,9 @@ const handleSave = async () => {
         } else if (typeof vendorAPI.createProvider === 'function') {
           const response = await vendorAPI.createProvider(vendorUpdateData);
           setProfile(prev => ({ ...prev, providerID: response.data.providerID }));
-        } else {
-          console.warn("No suitable create method found for vendor profile");
         }
       }
     } catch (vendorUpdateError) {
-      console.error("Error updating vendor profile:", vendorUpdateError);
       throw new Error("Failed to update business information");
     }
     
