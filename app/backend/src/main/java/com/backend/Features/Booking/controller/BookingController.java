@@ -18,23 +18,12 @@ import java.util.Map;
 public class BookingController {
     private final BookingService bookingService;
 
-
-    @Autowired
-    public BookingController(BookingService bookingService) {
-        this.bookingService = bookingService;
-    }
-
     @PostMapping("/customer")
     public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest bookingRequest) {
         BookingResponse bookingResponse = bookingService.createBooking(bookingRequest);
         return ResponseEntity.ok(bookingResponse);
     }
 
-//    @GetMapping("/customer")
-//    public ResponseEntity<List<BookingResponse>> getBookingsByCustomer(@RequestParam int customerID) {
-//        List<BookingResponse> bookings = bookingService.getBookingsByCustomer(customerID);
-//        return ResponseEntity.ok(bookings);
-//    }
 
     @GetMapping("/customer")
     public ResponseEntity<List<BookingResponse>> getBookingsByCustomer(@RequestParam int customerID) {
