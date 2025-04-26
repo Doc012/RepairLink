@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/reviews")
+@RequestMapping("/api/v1/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
     private final ReviewService reviewService;
 
-    @PostMapping
+    @PostMapping("customer")
     public ResponseEntity<ReviewResponse> createReview(@RequestBody ReviewRequest reviewRequest) {
         ReviewResponse reviewResponse = reviewService.createReview(reviewRequest);
         return ResponseEntity.ok(reviewResponse);
@@ -33,9 +33,26 @@ public class ReviewController {
         return ResponseEntity.ok(reviews);
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<List<ReviewResponse>> getMyReviews(@RequestParam int customerID) {
+    @GetMapping("/customer/{customerID}")
+    public ResponseEntity<List<ReviewResponse>> getMyReviews(@PathVariable int customerID) {
         List<ReviewResponse> reviews = reviewService.getMyReviews(customerID);
         return ResponseEntity.ok(reviews);
+    }
+
+    @PutMapping("/customer/{customerID}/{reviewID}")
+    public ResponseEntity<ReviewResponse> updateReview(
+            @PathVariable int customerID,
+            @PathVariable int reviewID,
+            @RequestBody ReviewRequest reviewRequest) {
+        ReviewResponse updatedReview = reviewService.updateReview(reviewID, reviewRequest, customerID);
+        return ResponseEntity.ok(updatedReview);
+    }
+
+    @DeleteMapping("/customer/{customerID}/{reviewID}")
+    public ResponseEntity<Void> deleteReview(
+            @PathVariable int customerID,
+            @PathVariable int reviewID) {
+        reviewService.deleteReview(reviewID, customerID);
+        return ResponseEntity.noContent().build();
     }
 }

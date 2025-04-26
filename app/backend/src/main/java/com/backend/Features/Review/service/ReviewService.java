@@ -24,19 +24,19 @@ public class ReviewService {
     private final CustomerRepository customerRepository;
 
     public ReviewResponse createReview(ReviewRequest reviewRequest) {
-        Customer customer = customerRepository.findById(reviewRequest.getCustomerID())
+        Customer customerID = customerRepository.findById(reviewRequest.getCustomerID())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        Booking booking = bookingRepository.findById(reviewRequest.getBookingID())
+        Booking bookingID = bookingRepository.findById(reviewRequest.getBookingID())
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
-        if (booking.getCustomer().getCustomerID() != reviewRequest.getCustomerID()) {
+        if (bookingID.getCustomer().getCustomerID() != reviewRequest.getCustomerID()) {
             throw new RuntimeException("Booking does not belong to the customer");
         }
 
         Review review = new Review();
-        review.setCustomer(customer);
-        review.setBooking(booking);
+        review.setCustomer(customerID);
+        review.setBooking(bookingID);
         review.setRating(reviewRequest.getRating());
         review.setComment(reviewRequest.getComment());
         review.setCreatedAt(LocalDateTime.now());
@@ -60,6 +60,36 @@ public class ReviewService {
         return reviews.stream().map(this::mapToReviewResponse).collect(Collectors.toList());
     }
 
+    public ReviewResponse updateReview(int reviewID, ReviewRequest reviewRequest, int customerID) {
+        Review review = reviewRepository.findById(reviewID)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+
+        // Verify the review belongs to the customer
+        if (review.getCustomer().getCustomerID() != customerID) {
+            throw new RuntimeException("You can only update your own reviews");
+        }
+
+        // Update review fields
+        review.setRating(reviewRequest.getRating());
+        review.setComment(reviewRequest.getComment());
+        review.setUpdatedAt(LocalDateTime.now());
+
+        Review updatedReview = reviewRepository.save(review);
+        return mapToReviewResponse(updatedReview);
+    }
+
+    public void deleteReview(int reviewID, int customerID) {
+        Review review = reviewRepository.findById(reviewID)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+
+        // Verify the review belongs to the customer
+        if (review.getCustomer().getCustomerID() != customerID) {
+            throw new RuntimeException("You can only delete your own reviews");
+        }
+
+        reviewRepository.delete(review);
+    }
+
     private ReviewResponse mapToReviewResponse(Review review) {
         ReviewResponse response = new ReviewResponse();
         response.setReviewID(review.getReviewID());
@@ -68,6 +98,11 @@ public class ReviewService {
         response.setRating(review.getRating());
         response.setComment(review.getComment());
         response.setCreatedAt(review.getCreatedAt());
+
+        if (review.getUpdatedAt() != null) {
+            response.setUpdatedAt(review.getUpdatedAt());
+        }
+
         return response;
     }
 }

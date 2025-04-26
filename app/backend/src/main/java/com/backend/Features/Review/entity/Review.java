@@ -30,16 +30,21 @@ public class Review {
     @Column(name = "createdAt", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updatedAt")
+    private LocalDateTime updatedAt;
+
+
     public Review() {
     }
 
-    public Review(int reviewID, Customer customer, Booking booking, int rating, String comment, LocalDateTime createdAt) {
+    public Review(int reviewID, Customer customer, Booking booking, int rating, String comment, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.reviewID = reviewID;
         this.customer = customer;
         this.booking = booking;
         this.rating = rating;
         this.comment = comment;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public int getReviewID() {
@@ -88,5 +93,13 @@ public class Review {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

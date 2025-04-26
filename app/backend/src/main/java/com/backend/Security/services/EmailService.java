@@ -15,6 +15,10 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
+
     public void sendVerificationEmail(String to, String verificationLink) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
@@ -29,8 +33,8 @@ public class EmailService {
         message.setFrom(fromEmail);
         message.setTo(to);
         message.setSubject("Password Reset Request");
-        message.setText("To reset your password, click the link below:\n\n" + "http://your-frontend-url/reset-password?token=" + token);
-
+        message.setText("To reset your password, click the link below:\n\n" +
+                frontendUrl + "/reset-password/" + token);
         mailSender.send(message);
     }
 }

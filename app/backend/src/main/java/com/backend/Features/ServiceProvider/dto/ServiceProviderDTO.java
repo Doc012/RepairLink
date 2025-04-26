@@ -9,6 +9,8 @@ public class ServiceProviderDTO {
     private String businessName;
     private String serviceCategory;
     private String location;
+    private String about;
+    private String phoneNumber;
     private boolean verified;
     private LocalDateTime createdAt;
 
@@ -50,6 +52,22 @@ public class ServiceProviderDTO {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getAbout() {
+        return about;
+    }
+
+    public void setAbout(String about) {
+        this.about = about;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
     public boolean isVerified() {

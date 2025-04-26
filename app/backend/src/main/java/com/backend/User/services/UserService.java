@@ -1,7 +1,8 @@
 package com.backend.User.services;
 
 import com.backend.User.dtos.UserDTO;
-import com.backend.User.entities.RoleType;
+import com.backend.User.dtos.UserUpdateDTO;
+import com.backend.User.entities.Role;
 import com.backend.User.entities.User;
 import com.backend.User.repositories.RoleRepository;
 import com.backend.User.repositories.UserRepository;
@@ -26,7 +27,7 @@ public class UserService {
             throw new RuntimeException("A user with the email '" + userDTO.getEmail() + "' already exists.");
         }
 
-        Optional<RoleType> role = roleRepository.findByRoleType(userDTO.getRoleType());
+        Optional<Role> role = roleRepository.findByRoleType(userDTO.getRoleType());
         if (role.isEmpty()){
             throw new RuntimeException("Role not found for type '" + userDTO.getRoleType());
         }
@@ -52,6 +53,11 @@ public class UserService {
         return userRepository.findById(userID);
     }
 
+    // Get a user by email
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
     // Update an existing user
     public User updateUser(int userID, UserDTO userDTO) {
         Optional<User> existingUser = userRepository.findById(userID);
@@ -66,7 +72,7 @@ public class UserService {
         user.setEmail(userDTO.getEmail());
         user.setPicUrl(userDTO.getPicUrl());
 
-        Optional<RoleType> role = roleRepository.findByRoleType(userDTO.getRoleType());
+        Optional<Role> role = roleRepository.findByRoleType(userDTO.getRoleType());
         if (role.isEmpty()) {
             throw new RuntimeException("Role not found for type: '" + userDTO.getRoleType() + "'");
         }
@@ -74,6 +80,38 @@ public class UserService {
 
         return userRepository.save(user);
     }
+
+    // Update only name, surname, and phone number
+    public User updateUserPartial(int userID, UserUpdateDTO updateDTO) {
+        Optional<User> existingUser = userRepository.findById(userID);
+        if (existingUser.isEmpty()) {
+            throw new RuntimeException("User not found with ID " + userID);
+        }
+
+        User user = existingUser.get();
+        user.setName(updateDTO.getName());
+        user.setSurname(updateDTO.getSurname());
+        user.setPhoneNumber(updateDTO.getPhoneNumber());
+
+        return userRepository.save(user);
+    }
+
+    // Get basic info of a user by ID
+    public UserUpdateDTO getUserBasicInfoById(int userID) {
+        Optional<User> user = userRepository.findById(userID);
+        if (user.isEmpty()) {
+            throw new RuntimeException("User not found with ID " + userID);
+        }
+
+        User existingUser = user.get();
+        UserUpdateDTO userUpdateDTO = new UserUpdateDTO();
+        userUpdateDTO.setName(existingUser.getName());
+        userUpdateDTO.setSurname(existingUser.getSurname());
+        userUpdateDTO.setPhoneNumber(existingUser.getPhoneNumber());
+
+        return userUpdateDTO;
+    }
+
 
     // Delete a user
     public void deleteUser(int userID) {

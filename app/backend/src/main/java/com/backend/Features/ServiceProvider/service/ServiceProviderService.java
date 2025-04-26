@@ -4,6 +4,7 @@ import com.backend.Features.ServiceProvider.dto.ServiceProviderDTO;
 import com.backend.Features.ServiceProvider.entity.ServiceProvider;
 import com.backend.Features.ServiceProvider.repository.ServiceProviderRepository;
 import com.backend.User.entities.User;
+import com.backend.User.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,17 +15,24 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ServiceProviderService {
     private final ServiceProviderRepository serviceProviderRepository;
+    private final UserRepository userRepository;
 
-    public ServiceProvider createServiceProvider(User user, ServiceProviderDTO serviceProviderDTO) {
+    public ServiceProvider createServiceProvider(ServiceProviderDTO serviceProviderDTO, int userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
         ServiceProvider serviceProvider = new ServiceProvider();
         serviceProvider.setUser(user);
         serviceProvider.setBusinessName(serviceProviderDTO.getBusinessName());
         serviceProvider.setServiceCategory(serviceProviderDTO.getServiceCategory());
         serviceProvider.setLocation(serviceProviderDTO.getLocation());
+        serviceProvider.setAbout(serviceProviderDTO.getAbout());
+        serviceProvider.setPhoneNumber(serviceProviderDTO.getPhoneNumber());
         serviceProvider.setVerified(serviceProviderDTO.isVerified());
-        serviceProvider.setCreatedAt(serviceProviderDTO.getCreatedAt());
+
         return serviceProviderRepository.save(serviceProvider);
     }
+
 
     public ServiceProvider updateServiceProvider(int id, ServiceProviderDTO serviceProviderDTO) {
         ServiceProvider serviceProvider = serviceProviderRepository.findById(id)
@@ -32,6 +40,8 @@ public class ServiceProviderService {
         serviceProvider.setBusinessName(serviceProviderDTO.getBusinessName());
         serviceProvider.setServiceCategory(serviceProviderDTO.getServiceCategory());
         serviceProvider.setLocation(serviceProviderDTO.getLocation());
+        serviceProvider.setAbout(serviceProviderDTO.getAbout());
+        serviceProvider.setPhoneNumber(serviceProviderDTO.getPhoneNumber());
         serviceProvider.setVerified(serviceProviderDTO.isVerified());
         return serviceProviderRepository.save(serviceProvider);
     }
@@ -48,4 +58,10 @@ public class ServiceProviderService {
     public List<ServiceProvider> getAllServiceProviders() {
         return serviceProviderRepository.findAll();
     }
+
+    public ServiceProvider getServiceProviderByUserId(int userID) {
+        return serviceProviderRepository.findByUser_UserID(userID)
+                .orElseThrow(() -> new RuntimeException("ServiceProvider not found for User ID: " + userID));
+    }
+
 }

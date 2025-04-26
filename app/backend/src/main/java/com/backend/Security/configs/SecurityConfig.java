@@ -37,23 +37,57 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(
                             "/api/auth/**",
-                            "/v3/api-docs/**",  // OpenAPI JSON
-                            "/swagger-ui/**",   // Swagger UI
-                            "/swagger-ui.html",
+                            "/api/auth/me",
+                            "/api/auth/refresh-token",
+                            "/v3/api-docs/**",
                             "/swagger-ui/**",
-                            "favicon.ico"
-                    ).permitAll();
-                    auth.requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN");
-                    auth.requestMatchers("/api/v1/user/**").hasAuthority("ROLE_USER");
-                    auth.requestMatchers("/error").permitAll();  // Allow access to the error endpoint
+                            "/swagger-ui.html",
+                            "favicon.ico",
+                            "/error",
 
+                            "/api/v1/reviews/service/{serviceID}",
+                            "/api/v1/reviews/provider/{providerID}",
+
+                            "/api/v1/service-providers",
+                            "/api/v1/service-providers/{id}",
+
+                            "/api/v1/services",
+                            "/api/v1/services/{serviceID}",
+                            "/api/v1/services/provider/{providerID}"
+                    ).permitAll();
+//                    auth.requestMatchers("/api/v1/users/by-email/{email}").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_VENDOR", "ROLE_ADMIN");
+
+                    auth.requestMatchers("/api/v1/customers/admin/**").hasAuthority("ROLE_ADMIN");
+                    auth.requestMatchers("/api/v1/customers/user/{userID}").hasAuthority("ROLE_CUSTOMER");
+
+
+                    auth.requestMatchers("/api/v1/roles/admin/**").hasAuthority("ROLE_ADMIN");
+
+                    auth.requestMatchers("/api/v1/bookings/customer/**").hasAuthority("ROLE_CUSTOMER");
+                    auth.requestMatchers("/api/v1/bookings/provider/**").hasAuthority("ROLE_VENDOR");
+//                    auth.requestMatchers("/api/v1/bookings/status/**").hasAuthority("ROLE_VENDOR");
+
+                    auth.requestMatchers("/api/v1/reviews/customer/**").hasAuthority("ROLE_CUSTOMER");
+
+                    auth.requestMatchers("/api/v1/services/create/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/services/update/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/services/delete/**").hasAuthority("ROLE_VENDOR");
+
+                    auth.requestMatchers("/api/v1/service-history/customer/**").hasAuthority("ROLE_CUSTOMER");
+                    auth.requestMatchers("/api/v1/service-history/provider/**").hasAuthority("ROLE_VENDOR");
+
+                    auth.requestMatchers("/api/v1/service-providers/create/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/service-providers/update/**").hasAuthority("ROLE_VENDOR");
+                    auth.requestMatchers("/api/v1/service-providers/delete/**").hasAuthority("ROLE_VENDOR");
+
+//                    auth.requestMatchers("/error").permitAll();
 
                     auth.anyRequest().authenticated();
                 })
-
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -83,15 +117,36 @@ public class SecurityConfig {
 
 
 
+
+
+//    @Bean
+//    public CorsConfigurationSource corsConfigurationSource() {
+//        CorsConfiguration configuration = new CorsConfiguration();
+//        configuration.setAllowedOrigins(Arrays.asList(
+//                "http://localhost:3000",
+//                "http://localhost:3001",
+//                "http://localhost:5173"
+//        ));
+//        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+//        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Auth-Token"));
+//        configuration.setExposedHeaders(Arrays.asList("X-Auth-Token"));
+//        configuration.setAllowCredentials(true); // If you are using credentials, "*" is not allowed
+//
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", configuration);
+//        return source;
+//    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
-        configuration.setExposedHeaders(Arrays.asList("x-auth-token"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000")); // Your React app URL
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 }
