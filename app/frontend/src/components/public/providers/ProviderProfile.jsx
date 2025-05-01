@@ -514,13 +514,6 @@ const ProviderProfile = () => {
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {currentServices.map((service) => {
-                const reviewData = serviceReviews[service.serviceID] || { 
-                  reviews: [], 
-                  averageRating: 0, 
-                  totalReviews: 0 
-                };
-                const isReviewLoading = serviceReviewsLoading[service.serviceID];
-                
                 return (
                   <motion.div
                     key={service.serviceID}
@@ -531,42 +524,11 @@ const ProviderProfile = () => {
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                       {service.serviceName}
                     </h3>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 min-h-[60px]">
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 min-h-[80px]">
                       {service.description}
                     </p>
                     
-                    {/* Service Reviews - Simplified to only show star rating and count */}
-                    <div className="mt-3 mb-4">
-                      {isReviewLoading ? (
-                        <div className="flex items-center space-x-1 animate-pulse">
-                          {[...Array(5)].map((_, i) => (
-                            <div key={i} className="h-4 w-4 rounded bg-slate-200 dark:bg-slate-700" />
-                          ))}
-                          <div className="ml-2 h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          {renderStars(reviewData.averageRating)}
-                          <span className="text-sm text-slate-600 dark:text-slate-400">
-                            {reviewData.averageRating.toFixed(1)} ({reviewData.totalReviews} {reviewData.totalReviews === 1 ? 'review' : 'reviews'})
-                          </span>
-                          {reviewData.totalReviews > 0 && (
-                            <button
-                              onClick={() => {
-                                setActiveSection('reviews');
-                                setTimeout(() => {
-                                  const element = document.getElementById(`service-reviews-${service.serviceID}`);
-                                  if (element) element.scrollIntoView({ behavior: 'smooth' });
-                                }, 200);
-                              }}
-                              className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-                            >
-                              See reviews →
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    {/* Removed the service reviews section */}
                     
                     <div className="mt-4 flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -937,10 +899,18 @@ const ProviderProfile = () => {
                       <div className="flex items-center">
                         <div className="mr-3">
                           <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                            <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                              {/* Use customer ID since name might not be available */}
-                              {review.customerID?.toString().charAt(0) || "U"}
-                            </span>
+                            <svg 
+                              className="h-5 w-5 text-blue-600 dark:text-blue-400" 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              viewBox="0 0 24 24" 
+                              fill="currentColor"
+                            >
+                              <path 
+                                fillRule="evenodd" 
+                                d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" 
+                                clipRule="evenodd" 
+                              />
+                            </svg>
                           </div>
                         </div>
                         <div>
@@ -1029,182 +999,7 @@ const ProviderProfile = () => {
             </div>
           )}
 
-          {/* Service-Specific Reviews Section - Only show services with reviews */}
-          <div className="mt-12">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-              Reviews by Service
-            </h2>
-            
-            {services.length === 0 ? (
-              <div className="text-center py-8 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-                <p className="text-lg font-medium text-slate-900 dark:text-white">No services found</p>
-                <p className="mt-2 text-slate-600 dark:text-slate-400">
-                  This provider hasn't added any services yet.
-                </p>
-              </div>
-            ) : (
-              // Filter services to only show those with reviews
-              (() => {
-                const servicesWithReviews = services.filter(service => {
-                  const reviewData = serviceReviews[service.serviceID];
-                  return reviewData && reviewData.totalReviews > 0;
-                });
-                
-                if (servicesWithReviews.length === 0) {
-                  return (
-                    <div className="text-center py-8 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-                      <p className="text-lg font-medium text-slate-900 dark:text-white">No service reviews yet</p>
-                      <p className="mt-2 text-slate-600 dark:text-slate-400">
-                        This provider's services don't have any reviews yet.
-                      </p>
-                    </div>
-                  );
-                }
-                
-                return (
-                  <div className="space-y-8">
-                    {servicesWithReviews.map(service => {
-                      const reviewData = serviceReviews[service.serviceID] || { 
-                        averageRating: 0, 
-                        totalReviews: 0 
-                      };
-                      const isReviewLoading = serviceReviewsLoading[service.serviceID];
-                      
-                      return (
-                        <div 
-                          key={service.serviceID} 
-                          id={`service-reviews-${service.serviceID}`}
-                          className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 overflow-hidden"
-                        >
-                          <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                                {service.serviceName}
-                              </h3>
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center">
-                                  {renderStars(reviewData.averageRating)}
-                                  <span className="ml-2 text-sm font-medium text-slate-900 dark:text-white">
-                                    {reviewData.averageRating.toFixed(1)}
-                                  </span>
-                                </div>
-                                <span className="text-sm text-slate-600 dark:text-slate-400">
-                                  {reviewData.totalReviews} {reviewData.totalReviews === 1 ? 'review' : 'reviews'}
-                                </span>
-                              </div>
-                            </div>
-                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                              {service.description}
-                            </p>
-                          </div>
-                          
-                          <div className="p-6">
-                            {isReviewLoading ? (
-                              <div className="animate-pulse space-y-4">
-                                {[...Array(2)].map((_, i) => (
-                                  <div key={i} className="flex items-start space-x-4">
-                                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                    <div className="flex-1">
-                                      <div className="h-4 w-32 bg-slate-200 rounded dark:bg-slate-700 mb-2"></div>
-                                      <div className="h-3 w-24 bg-slate-200 rounded dark:bg-slate-700 mb-3"></div>
-                                      <div className="h-4 w-full bg-slate-200 rounded dark:bg-slate-700 mb-2"></div>
-                                      <div className="h-4 w-5/6 bg-slate-200 rounded dark:bg-slate-700"></div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <>
-                                {/* If reviews array is available, show them, otherwise auto-load them */}
-                                {reviewData.reviews && reviewData.reviews.length > 0 ? (
-                                  <div className="space-y-6">
-                                    {reviewData.reviews.map(review => (
-                                      <motion.div 
-                                        key={review.reviewID}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="border-b border-slate-200 dark:border-slate-700 pb-6 last:border-0 last:pb-0"
-                                      >
-                                        <div className="flex items-center justify-between mb-2">
-                                          <div className="flex items-center">
-                                            <div className="mr-3">
-                                              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                                <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                                                  A
-                                                </span>
-                                              </div>
-                                            </div>
-                                            <div>
-                                              <h4 className="font-medium text-slate-900 dark:text-white">
-                                                Verified Customer
-                                              </h4>
-                                              <p className="text-sm text-slate-600 dark:text-slate-400">
-                                                {new Date(review.createdAt).toLocaleDateString()}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-center">
-                                            {[...Array(5)].map((_, index) => (
-                                              <StarIcon
-                                                key={index}
-                                                className={`h-4 w-4 ${
-                                                  index < review.rating
-                                                    ? 'text-yellow-400'
-                                                    : 'text-slate-300 dark:text-slate-600'
-                                                }`}
-                                              />
-                                            ))}
-                                          </div>
-                                        </div>
-                                        <p className="text-slate-600 dark:text-slate-400 mb-3">
-                                          {review.comment}
-                                        </p>
-                                        {review.bookingID && (
-                                          <div className="flex items-center gap-2">
-                                            <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-600 dark:bg-green-900/20 dark:text-green-400">
-                                              Verified Booking
-                                            </span>
-                                          </div>
-                                        )}
-                                      </motion.div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="text-center py-8">
-                                    <p className="text-slate-600 dark:text-slate-400">
-                                      {reviewData.totalReviews > 0 ? 'Loading reviews...' : 'No reviews yet for this service.'}
-                                    </p>
-                                    {reviewData.totalReviews > 0 && !reviewData.reviews && (() => {
-                                      setServiceReviewsLoading(prev => ({...prev, [service.serviceID]: true}));
-                                      publicAPI.getServiceReviews(service.serviceID)
-                                        .then(response => {
-                                          setServiceReviews(prev => ({
-                                            ...prev,
-                                            [service.serviceID]: {
-                                              ...prev[service.serviceID],
-                                              reviews: response.data || []
-                                            }
-                                          }));
-                                        })
-                                        .catch(err => console.error(`Error fetching reviews for service ${service.serviceID}:`, err))
-                                        .finally(() => {
-                                          setServiceReviewsLoading(prev => ({...prev, [service.serviceID]: false}));
-                                        });
-                                      return null;
-                                    })()}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()
-            )}
-          </div>
+        
           
          
         </div>

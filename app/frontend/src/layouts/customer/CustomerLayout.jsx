@@ -102,8 +102,8 @@ const CustomerLayout = () => {
 
   // Add mock user data (replace with auth user data if available)
   const [user] = useState({
-    name: authUser?.name || "John",
-    surname: authUser?.surname || "Doe",
+    name: authUser?.name || "RepairLink",
+    surname: authUser?.surname || "",
     picUrl: authUser?.picUrl || "/src/assets/images/hero/repair-3.jpg"
   });
 

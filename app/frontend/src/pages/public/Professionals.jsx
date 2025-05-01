@@ -25,8 +25,8 @@ const Professionals = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [categories, setCategories] = useState(['All']);
   const itemsPerPage = 6;
-  // Add this state for review loading
   const [reviewsLoading, setReviewsLoading] = useState({});
+  const [serviceReviews, setServiceReviews] = useState({});
 
   // 2. Fetch data from API
   useEffect(() => {
@@ -34,7 +34,6 @@ const Professionals = () => {
       setIsLoading(true);
       try {
         const response = await publicAPI.getServiceProviders();
-        console.log('API Response:', response.data);
         
         // Set the providers first so the UI can render
         setProfessionals(response.data);
@@ -45,45 +44,104 @@ const Professionals = () => {
             // Mark this provider's reviews as loading
             setReviewsLoading(prev => ({...prev, [provider.providerID]: true}));
             
-            // First try the summary endpoint
-            let reviewData = null;
+            // Fetch provider's services first
+            const servicesResponse = await publicAPI.getProviderServices(provider.providerID);
+            const services = servicesResponse.data || [];
             
-            try {
-              const summaryResponse = await publicAPI.getProviderReviewSummary(provider.providerID);
-              reviewData = {
-                rating: summaryResponse.data.averageRating || 0,
-                reviewCount: summaryResponse.data.totalReviews || 0
+            // If provider has services, get reviews for each service
+            if (services.length > 0) {
+              let totalRating = 0;
+              let totalReviews = 0;
+              let bestServiceRating = {
+                serviceName: "",
+                rating: 0,
+                reviewCount: 0
               };
-            } catch (summaryErr) {
-              console.warn(`Summary endpoint failed for provider ${provider.providerID}, trying direct reviews:`, summaryErr);
               
-              // If summary fails, try getting the reviews directly and calculate manually
-              const reviewsResponse = await publicAPI.getProviderReviews(provider.providerID);
-              const reviews = reviewsResponse.data || [];
+              // Process each service
+              for (const service of services) {
+                try {
+                  const serviceId = service.serviceID || service.id;
+                  const reviewsResponse = await publicAPI.getServiceReviews(serviceId);
+                  const reviews = reviewsResponse.data || [];
+                  
+                  if (reviews.length > 0) {
+                    // Calculate average rating for this service
+                    const serviceRatingSum = reviews.reduce((sum, review) => sum + review.rating, 0);
+                    const serviceAvgRating = serviceRatingSum / reviews.length;
+                    
+                    // Track service with best rating
+                    if (serviceAvgRating > bestServiceRating.rating || 
+                        (serviceAvgRating === bestServiceRating.rating && 
+                         reviews.length > bestServiceRating.reviewCount)) {
+                      bestServiceRating = {
+                        serviceName: service.serviceName || service.name,
+                        rating: serviceAvgRating,
+                        reviewCount: reviews.length
+                      };
+                    }
+                    
+                    // Add to totals
+                    totalRating += serviceRatingSum;
+                    totalReviews += reviews.length;
+                    
+                    // Save service review data
+                    setServiceReviews(prev => ({
+                      ...prev,
+                      [provider.providerID]: {
+                        ...prev[provider.providerID],
+                        [serviceId]: {
+                          rating: serviceAvgRating,
+                          reviewCount: reviews.length,
+                          serviceName: service.serviceName || service.name
+                        }
+                      }
+                    }));
+                  }
+                } catch (err) {
+                  // Continue to next service if there's an error
+                }
+              }
               
-              if (reviews.length > 0) {
-                const totalReviews = reviews.length;
-                const ratingSum = reviews.reduce((sum, review) => sum + review.rating, 0);
-                const avgRating = ratingSum / totalReviews;
+              // Update provider with overall review data
+              if (totalReviews > 0) {
+                const avgRating = totalRating / totalReviews;
                 
-                reviewData = {
-                  rating: avgRating,
-                  reviewCount: totalReviews
+                setProfessionals(prevProviders => 
+                  prevProviders.map(p => 
+                    p.providerID === provider.providerID ? 
+                      {
+                        ...p, 
+                        rating: avgRating, 
+                        reviewCount: totalReviews,
+                        bestService: bestServiceRating
+                      } : p
+                  )
+                );
+              }
+            } else {
+              // Try the provider review endpoint as fallback
+              try {
+                const summaryResponse = await publicAPI.getProviderReviewSummary(provider.providerID);
+                const reviewData = {
+                  rating: summaryResponse.data.average || 0,
+                  reviewCount: summaryResponse.data.total || 0
                 };
+                
+                if (reviewData.reviewCount > 0) {
+                  setProfessionals(prevProviders => 
+                    prevProviders.map(p => 
+                      p.providerID === provider.providerID ? 
+                        {...p, ...reviewData} : p
+                    )
+                  );
+                }
+              } catch (err) {
+                // Silent failure
               }
             }
-            
-            // Update just this provider with the review data if we got it
-            if (reviewData) {
-              setProfessionals(prevProviders => 
-                prevProviders.map(p => 
-                  p.providerID === provider.providerID ? 
-                    {...p, ...reviewData} : p
-                )
-              );
-            }
           } catch (err) {
-            console.warn(`Failed to fetch reviews for provider ${provider.providerID}:`, err);
+            // Silent failure
           } finally {
             // Mark this provider's reviews as loaded regardless of success/failure
             setReviewsLoading(prev => ({...prev, [provider.providerID]: false}));
@@ -100,7 +158,6 @@ const Professionals = () => {
         
         setError(null);
       } catch (err) {
-        console.error('Failed to fetch service providers:', err);
         setError('Unable to load professionals. Please try again later.');
         setProfessionals([]);
       } finally {
@@ -216,6 +273,28 @@ const Professionals = () => {
   // Helper function to get provider image or placeholder
   const getProviderImage = (provider) => {
     return provider.user?.picUrl || "https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png";
+  };
+
+  // Render star rating component
+  const RatingStars = ({ rating, size = "sm" }) => {
+    const starSize = size === "sm" ? "w-4 h-4" : "w-5 h-5";
+    
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => (
+          <StarIcon
+            key={i}
+            className={`${starSize} ${
+              i < Math.floor(rating || 0)
+                ? 'text-yellow-400'
+                : i < rating && i + 1 > rating
+                  ? 'text-yellow-300' // Half star (not implemented but you could use a half star SVG here)
+                  : 'text-gray-300 dark:text-gray-600'
+            }`}
+          />
+        ))}
+      </div>
+    );
   };
 
   // Return JSX with updated components for the API data structure
@@ -335,13 +414,14 @@ const Professionals = () => {
                 <div className="mt-2 h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
                 <div className="mt-3 h-4 w-full rounded bg-slate-200 dark:bg-slate-700" />
                 
-                {/* Add this new skeleton section for reviews */}
                 <div className="mt-3 flex items-center space-x-1">
                   {[...Array(5)].map((_, i) => (
                     <div key={i} className="h-4 w-4 rounded bg-slate-200 dark:bg-slate-700" />
                   ))}
                   <div className="ml-2 h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
                 </div>
+                
+                <div className="mt-3 h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
                 
                 <div className="mt-4 flex justify-between">
                   <div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
@@ -351,7 +431,7 @@ const Professionals = () => {
             ))}
           </motion.div>
         ) : (
-          /* Professionals Grid - Updated for API data structure */
+          /* Professionals Grid - Updated for API data structure with service reviews */
           <motion.div 
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
             variants={containerVariants}
@@ -415,22 +495,11 @@ const Professionals = () => {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <StarIcon
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(provider.rating || 0)
-                                ? 'text-yellow-400'
-                                : 'text-gray-300 dark:text-gray-600'
-                            }`}
-                          />
-                        ))}
-                      </div>
+                      <RatingStars rating={provider.rating || 0} />
                       <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
                         {provider.rating ? (
                           <>
-                            <span className="font-medium">{provider.rating.toFixed(1)}</span>
+                            <span className="font-medium">{Number(provider.rating).toFixed(1)}</span>
                             <span className="mx-1">•</span>
                             <span>{provider.reviewCount || 0} reviews</span>
                           </>
@@ -441,6 +510,26 @@ const Professionals = () => {
                     </>
                   )}
                 </div>
+
+                {/* Best Service with Rating - Show if provider has a best service with rating > 0 */}
+                {provider.bestService && provider.bestService.rating > 0 && (
+                  <div className="mt-3 px-3 py-2 bg-blue-50 rounded-lg dark:bg-blue-900/20">
+                    <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      Top rated service:
+                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-sm font-medium text-slate-900 dark:text-white line-clamp-1">
+                        {provider.bestService.serviceName}
+                      </span>
+                      <div className="flex items-center">
+                        <span className="text-xs font-semibold mr-1 text-slate-900 dark:text-white">
+                          {Number(provider.bestService.rating).toFixed(1)}
+                        </span>
+                        <StarIcon className="h-3.5 w-3.5 text-yellow-400" />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Provider Contact and Details */}
                 <div className="mt-4 flex items-center justify-between">
