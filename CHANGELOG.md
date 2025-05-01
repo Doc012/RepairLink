@@ -9,3 +9,4 @@ All notable changes to this project will be documented in this file.
 - Booking system with status tracking
 - Review and rating system
 - Booking history for customers and vendors
+- Statistics for customers and vendors
