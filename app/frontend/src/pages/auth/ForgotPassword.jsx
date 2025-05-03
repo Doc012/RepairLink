@@ -96,7 +96,7 @@ const ForgotPassword = () => {
                   setEmail(e.target.value);
                   if (error) setError(''); // Clear error when user types
                 }}
-                placeholder="john@example.com"
+                placeholder="spha@example.com"
                 disabled={isLoading}
                 error={error ? true : false}
               />

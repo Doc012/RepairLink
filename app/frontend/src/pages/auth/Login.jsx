@@ -76,7 +76,7 @@ const Login = () => {
           required
           value={formData.email}
           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-          placeholder="john@example.com"
+          placeholder="spha@example.com"
         />
 
         <FormInput

@@ -273,7 +273,7 @@ const Register = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="John"
+                    placeholder="Siphamandla"
                   />
                   <FormInput
                     icon={UserIcon}
@@ -283,7 +283,7 @@ const Register = () => {
                     required
                     value={formData.surname}
                     onChange={handleChange}
-                    placeholder="Doe"
+                    placeholder="Ngcepe"
                   />
                 </div>
 
@@ -296,7 +296,7 @@ const Register = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="john@example.com"
+                  placeholder="spha@example.com"
                 />
 
                 <FormInput
