@@ -37,6 +37,7 @@ import AdminServices from '../pages/admin/Services';
 import AdminBookings from '../pages/admin/Bookings';
 import AdminReports from '../pages/admin/Reports';
 import AdminSettings from '../pages/admin/Settings';
+import AdminProfile from '../pages/admin/Profile';
 
 const router = createBrowserRouter([
   {
@@ -227,6 +228,10 @@ const router = createBrowserRouter([
           {
             path: 'settings',
             element: <AdminSettings />,
+          },
+          {
+            path: 'profile',
+            element: <AdminProfile />,
           },
         ],
       },
