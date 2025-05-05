@@ -25,6 +25,10 @@ const Login = () => {
       if (result.success) {
         // Determine where to redirect based on user role
         if (result.data.roles && result.data.roles.some(role => 
+            typeof role === 'string' ? role === 'ROLE_ADMIN' : role.authority === 'ROLE_ADMIN')) {
+          console.log('Redirecting to admin dashboard');
+          navigate('/admin/dashboard');
+        } else if (result.data.roles && result.data.roles.some(role => 
             typeof role === 'string' ? role === 'ROLE_CUSTOMER' : role.authority === 'ROLE_CUSTOMER')) {
           console.log('Redirecting to customer dashboard');
           navigate('/user/dashboard');

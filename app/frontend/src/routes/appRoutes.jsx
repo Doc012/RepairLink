@@ -28,6 +28,16 @@ import ProviderProfile from '../components/public/providers/ProviderProfile';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import ErrorPage from '../pages/errors/ErrorPage';
 
+// Import admin components
+import AdminLayout from '../layouts/admin/AdminLayout';
+import AdminDashboard from '../pages/admin/Dashboard';
+import AdminUsers from '../pages/admin/Users';
+import AdminProviders from '../pages/admin/Providers';
+import AdminServices from '../pages/admin/Services';
+import AdminBookings from '../pages/admin/Bookings';
+import AdminReports from '../pages/admin/Reports';
+import AdminSettings from '../pages/admin/Settings';
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -155,6 +165,68 @@ const router = createBrowserRouter([
           {
             path: 'statistics',
             element: <VendorStatistics />,
+          },
+        ],
+      },
+    ],
+  },
+  // Add admin routes
+  {
+    path: '/admin',
+    element: <ProtectedRoute requiredRole="ROLE_ADMIN" />,
+    errorElement: <ErrorPage />,
+    children: [
+      {
+        path: '',
+        element: <AdminLayout />,
+        children: [
+          {
+            path: '',
+            element: <AdminDashboard />,  // Default route
+          },
+          {
+            path: 'dashboard',
+            element: <AdminDashboard />,
+          },
+          {
+            path: 'users',
+            element: <AdminUsers />,
+          },
+          {
+            path: 'users/:userId',
+            element: <AdminUsers />,  // Add user detail view when created
+          },
+          {
+            path: 'providers',
+            element: <AdminProviders />,
+          },
+          {
+            path: 'providers/:providerId',
+            element: <AdminProviders />,  // Add provider detail view when created
+          },
+          {
+            path: 'services',
+            element: <AdminServices />,
+          },
+          {
+            path: 'services/:serviceId',
+            element: <AdminServices />,  // Add service detail view when created
+          },
+          {
+            path: 'bookings',
+            element: <AdminBookings />,
+          },
+          {
+            path: 'bookings/:bookingId',
+            element: <AdminBookings />,  // Add booking detail view when created
+          },
+          {
+            path: 'reports',
+            element: <AdminReports />,
+          },
+          {
+            path: 'settings',
+            element: <AdminSettings />,
           },
         ],
       },
