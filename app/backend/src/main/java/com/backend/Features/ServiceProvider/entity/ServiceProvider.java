@@ -31,6 +31,12 @@ public class ServiceProvider {
     @Column(name = "phoneNumber", nullable = false)
     private String phoneNumber;
 
+    @Column(name = "businessEmail")
+    private String businessEmail;
+
+    @Column(name = "website")
+    private String website;
+
     @Column(name = "verified", nullable = false)
     private boolean verified;
 
@@ -40,7 +46,7 @@ public class ServiceProvider {
     public ServiceProvider() {
     }
 
-    public ServiceProvider(int providerID, User user, String businessName, String serviceCategory, String location, String about, String phoneNumber, boolean verified, LocalDateTime createdAt) {
+    public ServiceProvider(int providerID, User user, String businessName, String serviceCategory, String location, String about, String phoneNumber, String businessEmail, String website, boolean verified, LocalDateTime createdAt) {
         this.providerID = providerID;
         this.user = user;
         this.businessName = businessName;
@@ -48,6 +54,8 @@ public class ServiceProvider {
         this.location = location;
         this.about = about;
         this.phoneNumber = phoneNumber;
+        this.businessEmail = businessEmail;
+        this.website = website;
         this.verified = verified;
         this.createdAt = createdAt;
     }
@@ -106,6 +114,22 @@ public class ServiceProvider {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getBusinessEmail() {
+        return businessEmail;
+    }
+
+    public void setBusinessEmail(String businessEmail) {
+        this.businessEmail = businessEmail;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
     }
 
     public boolean isVerified() {
