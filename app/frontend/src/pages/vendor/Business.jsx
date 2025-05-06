@@ -22,6 +22,8 @@ import {
   StarIcon,
   CheckBadgeIcon,
   ShieldCheckIcon,
+  EnvelopeIcon, 
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { ClockIcon as SolidClockIcon } from '@heroicons/react/24/solid';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -159,7 +161,9 @@ const Business = () => {
     serviceCategory: "",
     location: "",
     phoneNumber: "",
-    about: ""
+    about: "",
+    businessEmail: "", // Add this field
+    website: ""        // Add this field
   });
 
   const [services, setServices] = useState([]);
@@ -215,6 +219,8 @@ const fetchBusinessData = async () => {
       location: providerData.location || "",
       phoneNumber: providerData.phoneNumber || "",
       about: providerData.about || "",
+      businessEmail: providerData.businessEmail || "", // Add this
+      website: providerData.website || ""              // Add this
     });
     
     setProviderID(providerData.providerID);
@@ -299,6 +305,16 @@ const fetchBusinessData = async () => {
       errors.about = "Description should be at least 20 characters";
     }
     
+    // Add email validation
+    if (data.businessEmail && !data.businessEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      errors.businessEmail = "Please enter a valid email address";
+    }
+    
+    // Add website validation (optional field)
+    if (data.website && !data.website.match(/^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/)) {
+      errors.website = "Please enter a valid website URL";
+    }
+    
     return errors;
   };
 
@@ -343,7 +359,9 @@ const handleConfirmSubmit = async () => {
       serviceCategory: business.serviceCategory,
       location: business.location,
       about: business.about,
-      phoneNumber: business.phoneNumber
+      phoneNumber: business.phoneNumber,
+      businessEmail: business.businessEmail, // Add this
+      website: business.website               // Add this
     };
     
     console.log("Creating provider profile with data:", profileData);
@@ -386,7 +404,9 @@ const handleConfirmSubmit = async () => {
         serviceCategory: business.serviceCategory,
         phoneNumber: business.phoneNumber,
         location: business.location,
-        about: business.about
+        about: business.about,
+        businessEmail: business.businessEmail, // Add this
+        website: business.website              // Add this
       };
       
       await vendorAPI.updateProvider(providerID, updateData);
@@ -796,6 +816,70 @@ const handleDeleteService = async (serviceId) => {
         </p>
       </div>
 
+      {/* Business Email */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+          Business Email
+        </label>
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="email"
+            value={business.businessEmail}
+            onChange={(e) => {
+              setBusiness({ ...business, businessEmail: e.target.value });
+              setBusinessFormErrors({...businessFormErrors, businessEmail: ""});
+            }}
+            className={`block w-full rounded-lg border ${
+              businessFormErrors.businessEmail 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+            } pl-10 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:text-white`}
+            placeholder="business@example.com"
+          />
+          {businessFormErrors.businessEmail && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{businessFormErrors.businessEmail}</p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            This email will be visible to customers for business inquiries
+          </p>
+        </div>
+      </div>
+
+      {/* Website */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+          Business Website
+        </label>
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <GlobeAltIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="url"
+            value={business.website}
+            onChange={(e) => {
+              setBusiness({ ...business, website: e.target.value });
+              setBusinessFormErrors({...businessFormErrors, website: ""});
+            }}
+            className={`block w-full rounded-lg border ${
+              businessFormErrors.website 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+            } pl-10 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:text-white`}
+            placeholder="https://www.yourbusiness.com"
+          />
+          {businessFormErrors.website && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{businessFormErrors.website}</p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Include http:// or https:// for external links
+          </p>
+        </div>
+      </div>
+
       {/* Submit/Next Button */}
       <div className="flex justify-between pt-4">
         {currentStep > 1 && (
@@ -1114,37 +1198,36 @@ const handleDeleteService = async (serviceId) => {
                       )}
                     </div>
 
-                    // Replace the duration field in the service form with this simpler version
-<div>
-  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-    Duration*
-  </label>
-  <input
-    type="text"
-    value={editingService ? editingService.duration : newService.duration}
-    onChange={(e) => {
-      if (editingService) {
-        setEditingService({ ...editingService, duration: e.target.value });
-        setFormErrors({...formErrors, duration: ""});
-      } else {
-        setNewService({ ...newService, duration: e.target.value });
-        setFormErrors({...formErrors, duration: ""});
-      }
-    }}
-    className={`block w-full rounded-lg border ${
-      formErrors.duration 
-        ? 'border-red-300 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
-        : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
-    } p-2.5 text-gray-900 dark:bg-slate-800 dark:text-white`}
-    placeholder="E.g., 2 hours, 30 minutes"
-    required
-  />
-  {formErrors.duration && (
-    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-      {formErrors.duration}
-    </p>
-  )}
-</div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Duration*
+                      </label>
+                      <input
+                        type="text"
+                        value={editingService ? editingService.duration : newService.duration}
+                        onChange={(e) => {
+                          if (editingService) {
+                            setEditingService({ ...editingService, duration: e.target.value });
+                            setFormErrors({...formErrors, duration: ""});
+                          } else {
+                            setNewService({ ...newService, duration: e.target.value });
+                            setFormErrors({...formErrors, duration: ""});
+                          }
+                        }}
+                        className={`block w-full rounded-lg border ${
+                          formErrors.duration 
+                            ? 'border-red-300 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                            : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+                        } p-2.5 text-gray-900 dark:bg-slate-800 dark:text-white`}
+                        placeholder="E.g., 2 hours, 30 minutes"
+                        required
+                      />
+                      {formErrors.duration && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                          {formErrors.duration}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-6 flex justify-end space-x-3">
@@ -1380,6 +1463,70 @@ const handleDeleteService = async (serviceId) => {
         </p>
       </div>
 
+      {/* Business Email */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+          Business Email
+        </label>
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="email"
+            value={business.businessEmail}
+            onChange={(e) => {
+              setBusiness({ ...business, businessEmail: e.target.value });
+              setBusinessFormErrors({...businessFormErrors, businessEmail: ""});
+            }}
+            className={`block w-full rounded-lg border ${
+              businessFormErrors.businessEmail 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+            } pl-10 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:text-white`}
+            placeholder="business@example.com"
+          />
+          {businessFormErrors.businessEmail && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{businessFormErrors.businessEmail}</p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            This email will be visible to customers for business inquiries
+          </p>
+        </div>
+      </div>
+
+      {/* Website */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+          Business Website
+        </label>
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <GlobeAltIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="url"
+            value={business.website}
+            onChange={(e) => {
+              setBusiness({ ...business, website: e.target.value });
+              setBusinessFormErrors({...businessFormErrors, website: ""});
+            }}
+            className={`block w-full rounded-lg border ${
+              businessFormErrors.website 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+            } pl-10 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:text-white`}
+            placeholder="https://www.yourbusiness.com"
+          />
+          {businessFormErrors.website && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{businessFormErrors.website}</p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Include http:// or https:// for external links
+          </p>
+        </div>
+      </div>
+
       {/* Submit/Next Button */}
       <div className="flex justify-between pt-4">
         <motion.button
@@ -1580,6 +1727,64 @@ const handleDeleteService = async (serviceId) => {
           {businessFormErrors.about && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{businessFormErrors.about}</p>
           )}
+        </div>
+
+        {/* Business Email */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+            Business Email
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="email"
+              value={business.businessEmail}
+              onChange={(e) => {
+                setBusiness({ ...business, businessEmail: e.target.value });
+                setBusinessFormErrors({...businessFormErrors, businessEmail: ""});
+              }}
+              className={`block w-full rounded-lg border ${
+                businessFormErrors.businessEmail 
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                  : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+              } pl-10 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:text-white`}
+              placeholder="Enter your business email"
+            />
+            {businessFormErrors.businessEmail && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{businessFormErrors.businessEmail}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Business Website */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
+            Business Website
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <GlobeAltIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="url"
+              value={business.website}
+              onChange={(e) => {
+                setBusiness({ ...business, website: e.target.value });
+                setBusinessFormErrors({...businessFormErrors, website: ""});
+              }}
+              className={`block w-full rounded-lg border ${
+                businessFormErrors.website 
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                  : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+              } pl-10 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:text-white`}
+              placeholder="Enter your business website"
+            />
+            {businessFormErrors.website && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{businessFormErrors.website}</p>
+            )}
+          </div>
         </div>
 
         {/* Next Steps Info */}
@@ -1837,37 +2042,36 @@ const handleDeleteService = async (serviceId) => {
                       </div>
                     </div>
                     
-                    // Replace the duration field in the service form with this simpler version
-<div>
-  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-    Duration*
-  </label>
-  <input
-    type="text"
-    value={editingService ? editingService.duration : newService.duration}
-    onChange={(e) => {
-      if (editingService) {
-        setEditingService({ ...editingService, duration: e.target.value });
-        setFormErrors({...formErrors, duration: ""});
-      } else {
-        setNewService({ ...newService, duration: e.target.value });
-        setFormErrors({...formErrors, duration: ""});
-      }
-    }}
-    className={`block w-full rounded-lg border ${
-      formErrors.duration 
-        ? 'border-red-300 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
-        : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
-    } p-2.5 text-gray-900 dark:bg-slate-800 dark:text-white`}
-    placeholder="E.g., 2 hours, 30 minutes"
-    required
-  />
-  {formErrors.duration && (
-    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-      {formErrors.duration}
-    </p>
-  )}
-</div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Duration*
+                      </label>
+                      <input
+                        type="text"
+                        value={editingService ? editingService.duration : newService.duration}
+                        onChange={(e) => {
+                          if (editingService) {
+                            setEditingService({ ...editingService, duration: e.target.value });
+                            setFormErrors({...formErrors, duration: ""});
+                          } else {
+                            setNewService({ ...newService, duration: e.target.value });
+                            setFormErrors({...formErrors, duration: ""});
+                          }
+                        }}
+                        className={`block w-full rounded-lg border ${
+                          formErrors.duration 
+                            ? 'border-red-300 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500/40' 
+                            : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-700'
+                        } p-2.5 text-gray-900 dark:bg-slate-800 dark:text-white`}
+                        placeholder="E.g., 2 hours, 30 minutes"
+                        required
+                      />
+                      {formErrors.duration && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                          {formErrors.duration}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Form Buttons */}
@@ -1996,6 +2200,34 @@ const handleDeleteService = async (serviceId) => {
                     <div>
                       <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Location</h4>
                       <p className="text-base text-gray-900 dark:text-white">{business.location}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Business Email</h4>
+                      {business.businessEmail ? (
+                        <a 
+                          href={`mailto:${business.businessEmail}`} 
+                          className="text-base text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {business.businessEmail}
+                        </a>
+                      ) : (
+                        <p className="text-base text-gray-500 dark:text-gray-400 italic">Not specified</p>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Website</h4>
+                      {business.website ? (
+                        <a 
+                          href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer" 
+                          className="text-base text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {business.website}
+                        </a>
+                      ) : (
+                        <p className="text-base text-gray-500 dark:text-gray-400 italic">Not specified</p>
+                      )}
                     </div>
                   </div>
 

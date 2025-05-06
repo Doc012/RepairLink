@@ -25,6 +25,10 @@ const Login = () => {
       if (result.success) {
         // Determine where to redirect based on user role
         if (result.data.roles && result.data.roles.some(role => 
+            typeof role === 'string' ? role === 'ROLE_ADMIN' : role.authority === 'ROLE_ADMIN')) {
+          console.log('Redirecting to admin dashboard');
+          navigate('/admin/dashboard');
+        } else if (result.data.roles && result.data.roles.some(role => 
             typeof role === 'string' ? role === 'ROLE_CUSTOMER' : role.authority === 'ROLE_CUSTOMER')) {
           console.log('Redirecting to customer dashboard');
           navigate('/user/dashboard');
@@ -37,7 +41,13 @@ const Login = () => {
           navigate('/');
         }
       } else {
+        // Display the error message from the login result
         setError(result.message);
+        
+        // Add focus to the password field if it's an authentication error
+        if (result.message.includes('Invalid email or password')) {
+          document.getElementById('password')?.focus();
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
