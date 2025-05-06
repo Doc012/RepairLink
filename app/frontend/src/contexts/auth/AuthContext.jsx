@@ -131,11 +131,12 @@ export const AuthProvider = ({ children }) => {
       
       if (error.response) {
         if (error.response.status === 401) {
-          errorMessage = error.response.data || 'Invalid email or password';
+          // Specific message for authentication failure
+          errorMessage = 'Invalid email or password. Please try again.';
         } else if (error.response.status === 403) {
-          errorMessage = error.response.data || 'You do not have permission to access this resource';
+          errorMessage = 'Account is locked or does not have sufficient permissions.';
         } else if (error.response.status === 404) {
-          errorMessage = error.response.data || 'The requested resource could not be found';
+          errorMessage = 'User account not found. Please check your email address.';
         } else {
           errorMessage = error.response.data?.message || error.response.data || 'An error occurred during login';
         }
@@ -143,6 +144,12 @@ export const AuthProvider = ({ children }) => {
         errorMessage = 'No response from server. Please check your internet connection.';
       } else {
         errorMessage = 'Unable to send login request. Please try again later.';
+      }
+      
+      // Prevent unnecessary token refresh attempt for auth failures
+      if (error.response?.status === 401) {
+        // Clear any existing refresh token to prevent additional failed attempts
+        localStorage.removeItem('refreshToken');
       }
       
       return {

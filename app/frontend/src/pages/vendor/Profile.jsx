@@ -15,7 +15,8 @@ import {
   InformationCircleIcon,
   WrenchScrewdriverIcon,
   CheckBadgeIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import ChangePasswordForm from '../../components/shared/ChangePasswordForm';
 import { useAuth } from '../../contexts/auth/AuthContext';
@@ -83,6 +84,8 @@ const VendorProfile = () => {
     joinedDate: '',
     serviceCategory: '',
     businessPhone: '',
+    businessEmail: '', // Add this field
+    website: '',       // Add this field
     verified: false
   });
   
@@ -94,7 +97,9 @@ const VendorProfile = () => {
     location: '',
     description: '',
     serviceCategory: '',
-    businessPhone: ''
+    businessPhone: '',
+    businessEmail: '', // Add this field
+    website: ''        // Add this field
   });
   
   const [isEditing, setIsEditing] = useState(false);
@@ -212,6 +217,8 @@ const fetchProfile = async () => {
           description: vendorData.about || '', // API field is 'about'
           serviceCategory: vendorData.serviceCategory || '',
           businessPhone: vendorData.phoneNumber || '', // API field is 'phoneNumber'
+          businessEmail: vendorData.businessEmail || '', // Map from API
+          website: vendorData.website || '',             // Map from API
           verified: vendorData.verified || false,
           providerID: vendorData.providerID || null
         };
@@ -238,7 +245,9 @@ const fetchProfile = async () => {
           location: profileData.location,
           description: profileData.description,
           serviceCategory: profileData.serviceCategory,
-          businessPhone: profileData.businessPhone
+          businessPhone: profileData.businessPhone,
+          businessEmail: profileData.businessEmail, // Add this field
+          website: profileData.website              // Add this field
         });
       }
     } catch (apiError) {
@@ -278,7 +287,9 @@ const fetchProfile = async () => {
       location: profile.location,
       description: profile.description,
       serviceCategory: profile.serviceCategory,
-      businessPhone: profile.businessPhone
+      businessPhone: profile.businessPhone,
+      businessEmail: profile.businessEmail, // Add this field
+      website: profile.website              // Add this field
     });
     setIsEditing(false);
     setUpdateError('');
@@ -307,7 +318,9 @@ const handleSave = async () => {
       serviceCategory: editFormData.serviceCategory,
       phoneNumber: editFormData.businessPhone,
       location: editFormData.location,
-      about: editFormData.description
+      about: editFormData.description,
+      businessEmail: editFormData.businessEmail, // Add this field
+      website: editFormData.website              // Add this field
     };
     
     // If we have a providerID, include it in the update payload
@@ -360,7 +373,9 @@ const handleSave = async () => {
       location: editFormData.location,
       description: editFormData.description,
       serviceCategory: editFormData.serviceCategory,
-      businessPhone: editFormData.businessPhone
+      businessPhone: editFormData.businessPhone,
+      businessEmail: editFormData.businessEmail, // Add this field
+      website: editFormData.website              // Add this field
     }));
     
     setIsEditing(false);
@@ -798,6 +813,78 @@ const handleSave = async () => {
                       <PhoneIcon className="h-5 w-5 text-gray-400 mr-2" />
                       <span className="text-gray-900 dark:text-white">{profile.businessPhone || profile.phoneNumber || 'Not specified'}</span>
                     </div>
+                  )}
+                </div>
+                
+                {/* Business Email */}
+                <div>
+                  <label htmlFor="businessEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Business Email
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      id="businessEmail"
+                      name="businessEmail"
+                      value={editFormData.businessEmail}
+                      onChange={handleInputChange}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="business@example.com"
+                    />
+                  ) : (
+                    <div className="flex items-center">
+                      <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-gray-900 dark:text-white">
+                        {profile.businessEmail ? (
+                          <a href={`mailto:${profile.businessEmail}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+                            {profile.businessEmail}
+                          </a>
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400 italic">Not specified</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Website */}
+                <div>
+                  <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Website
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="url"
+                      id="website"
+                      name="website"
+                      value={editFormData.website}
+                      onChange={handleInputChange}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="https://www.example.com"
+                    />
+                  ) : (
+                    <div className="flex items-center">
+                      <GlobeAltIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-gray-900 dark:text-white">
+                        {profile.website ? (
+                          <a 
+                            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {profile.website}
+                          </a>
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400 italic">Not specified</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {isEditing && (
+                    <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
+                      Include http:// or https:// for external links
+                    </p>
                   )}
                 </div>
                 

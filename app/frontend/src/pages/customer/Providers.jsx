@@ -12,7 +12,9 @@ import {
   XMarkIcon,
   ExclamationCircleIcon,
   InformationCircleIcon,
-  CheckIcon // Add this import
+  CheckIcon, // Add this import
+  EnvelopeIcon, 
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -672,6 +674,44 @@ const CustomerProviders = () => {
                           >
                             {provider.phoneNumber || "Contact information not available"}
                           </a>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <EnvelopeIcon className="h-5 w-5 mr-3 text-gray-500 dark:text-slate-400 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">Business Email</div>
+                          {provider.businessEmail ? (
+                            <a 
+                              href={`mailto:${provider.businessEmail}`} 
+                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {provider.businessEmail}
+                            </a>
+                          ) : (
+                            <span className="text-gray-600 dark:text-slate-300">
+                              Business email not provided
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <GlobeAltIcon className="h-5 w-5 mr-3 text-gray-500 dark:text-slate-400 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">Website</div>
+                          {provider.website ? (
+                            <a 
+                              href={provider.website.startsWith('http') ? provider.website : `https://${provider.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {provider.website}
+                            </a>
+                          ) : (
+                            <span className="text-gray-600 dark:text-slate-300">
+                              Website not available
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-start">

@@ -41,7 +41,13 @@ const Login = () => {
           navigate('/');
         }
       } else {
+        // Display the error message from the login result
         setError(result.message);
+        
+        // Add focus to the password field if it's an authentication error
+        if (result.message.includes('Invalid email or password')) {
+          document.getElementById('password')?.focus();
+        }
       }
     } catch (error) {
       console.error('Login error:', error);

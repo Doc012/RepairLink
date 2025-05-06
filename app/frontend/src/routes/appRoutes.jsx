@@ -39,6 +39,15 @@ import AdminReports from '../pages/admin/Reports';
 import AdminSettings from '../pages/admin/Settings';
 import AdminProfile from '../pages/admin/Profile';
 
+// Add import for the Reviews page
+import VendorReviews from '../pages/vendor/Reviews';
+
+// Add the import
+import History from '../pages/customer/History';
+
+// Add the import
+import VendorHistory from '../pages/vendor/History';
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -129,6 +138,14 @@ const router = createBrowserRouter([
             path: 'reviews',
             element: <CustomerReviews />,
           },
+          // Inside the routes array, add this route in the customer routes section
+          {
+            path: "/user/history",
+            element: <History />,
+            // Change these to true to show the sidebar and layout elements
+            hasNavbar: true,
+            hasFooter: true
+          },
         ],
       },
     ],
@@ -160,12 +177,23 @@ const router = createBrowserRouter([
             element: <VendorOrders />,
           },
           {
+            path: 'reviews',        // Add this new route
+            element: <VendorReviews />,
+          },
+          {
             path: 'profile',
             element: <VendorProfile />,
           },
           {
             path: 'statistics',
             element: <VendorStatistics />,
+          },
+          // Inside the routes array, add this route in the vendor routes section
+          {
+            path: "/vendor/history",
+            element: <VendorHistory />,
+            hasNavbar: true,
+            hasFooter: true
           },
         ],
       },

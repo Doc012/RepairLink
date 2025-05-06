@@ -13,7 +13,8 @@ import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   SunIcon,
-  MoonIcon
+  MoonIcon,
+  ClockIcon // Add ClockIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/auth/AuthContext'; // Import useAuth
 
@@ -68,11 +69,13 @@ const ConfirmationDialog = ({ isOpen, title, message, onConfirm, onCancel, isLoa
   );
 };
 
+// Update the navigation array to include the History link
 const navigation = [
   { name: 'Dashboard', href: '/user/dashboard', icon: HomeIcon },
   { name: 'My Bookings', href: '/user/bookings', icon: CalendarIcon },
   { name: 'Services', href: '/user/services', icon: WrenchScrewdriverIcon },
   { name: 'Service Providers', href: '/user/providers', icon: BuildingStorefrontIcon },
+  { name: 'My History', href: '/user/history', icon: ClockIcon }, // Add this line
   { name: 'My Reviews', href: '/user/reviews', icon: StarIcon },
   { name: 'My Profile', href: '/user/profile', icon: UserCircleIcon },
 ];
