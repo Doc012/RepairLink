@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   MagnifyingGlassIcon, 
   ArrowPathIcon, 
@@ -14,15 +14,19 @@ import {
   XCircleIcon,
   CheckBadgeIcon,
 } from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
-import apiClient from '../../utils/apiClient';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import adminAPI from '../../services/admin/adminAPI';
+// Removed publicAPI import since we're not using categories
 
 const Services = () => {
+  const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalServices, setTotalServices] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -32,276 +36,249 @@ const Services = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [pageSize] = useState(9); // Fixed for consistency
+  // Removed categories state since we don't have that endpoint
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Define hardcoded categories for filtering - common service categories
+  const staticCategories = [
+    'Electronics Repair',
+    'Plumbing',
+    'Electrical',
+    'Carpentry',
+    'Appliance Repair',
+    'Automotive',
+    'Computer Services',
+    'Mobile Repair'
+  ];
 
+  // Remove fetchCategories useEffect since we don't have that endpoint
+
+  // Fetch services whenever filters or pagination changes
   useEffect(() => {
     fetchServices();
-  }, [currentPage, filterCategory, filterStatus]);
+  }, [currentPage]);
 
-  const fetchServices = async () => {
-    try {
+  // Separate useEffect for search and filter changes
+  useEffect(() => {
+    // When search or filters change, reset to first page
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    } else {
+      // If already on first page, fetch with new filters
+      fetchServices();
+    }
+  }, [searchTerm, filterCategory, filterStatus]);
+
+  // Remove fetchCategories function since we don't need it
+
+  const fetchServices = useCallback(async () => {
+    setIsRefreshing(true);
+    if (services.length === 0) {
       setIsLoading(true);
-      // In a real app, make API calls with pagination and filters
-      // const response = await apiClient.get(
-      //   `/admin/services?page=${currentPage}&category=${filterCategory}&status=${filterStatus}`
-      // );
+    }
+    
+    try {
+      // Build filter params
+      const params = {
+        page: currentPage - 1, // Convert to 0-indexed for backend
+        size: pageSize
+      };
+
+      if (searchTerm && searchTerm.trim() !== '') {
+        params.search = searchTerm.trim();
+      }
+
+      if (filterCategory !== 'all') {
+        params.category = filterCategory;
+      }
+
+      if (filterStatus !== 'all') {
+        params.status = filterStatus;
+      }
       
-      // For now, simulate with mock data
-      setTimeout(() => {
-        const mockServices = getMockServices();
-        setServices(mockServices);
-        setTotalPages(4); // Mock total pages
-        setIsLoading(false);
-      }, 800);
+      // Make API call using AdminAPI
+      const response = await adminAPI.getServices(params);
+      
+      if (response && response.data) {
+        let fetchedServices;
+        let totalElements;
+        let totalPages;
+
+        if (Array.isArray(response.data)) {
+          // Handle non-paginated response
+          fetchedServices = response.data;
+          totalElements = response.data.length;
+          totalPages = 1;
+        } else {
+          // Handle Spring Boot paginated response
+          fetchedServices = response.data.content || [];
+          totalElements = response.data.totalElements || 0;
+          totalPages = response.data.totalPages || 1;
+        }
+
+        // Map to UI format - FIX: Use verified property for status instead of active
+        const mappedServices = fetchedServices.map(service => ({
+          id: service.serviceID,
+          name: service.serviceName,
+          description: service.description,
+          price: service.price ? `R${service.price.toFixed(2)}` : 'Price varies',
+          duration: service.duration || 'Not specified',
+          category: service.category || 'Miscellaneous',
+          providerId: service.providerID,
+          // FIX: Default to 'Active' if verified is true or not specified
+          status: service.verified === false ? 'Inactive' : 'Active',
+          featured: service.featured || false,
+          rating: service.rating || 0,
+          reviews: service.reviewCount || 0,
+          image: service.imageUrl || null,
+          createdAt: service.createdAt,
+          // Store original data for edit operations
+          originalData: service
+        }));
+
+        setServices(mappedServices);
+        setTotalServices(totalElements);
+        setTotalPages(totalPages);
+      } else {
+        setServices([]);
+        setTotalServices(0);
+        setTotalPages(1);
+      }
+      
     } catch (err) {
       console.error('Failed to fetch services:', err);
       setError('Failed to load services. Please try again.');
+    } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [currentPage, pageSize, searchTerm, filterCategory, filterStatus]);
+
+  // Toggle active status - Update to use verified property
+  const handleToggleStatus = async (serviceId, currentStatus) => {
+    try {
+      const service = services.find(s => s.id === serviceId);
+      if (!service) return;
+
+      const isCurrentlyActive = currentStatus === 'Active';
+      
+      // Update service with toggled verified status instead of active
+      const updatedService = {
+        ...service.originalData,
+        verified: !isCurrentlyActive
+      };
+
+      await adminAPI.updateService(serviceId, updatedService);
+      
+      // Update state
+      const updatedServices = services.map(s => {
+        if (s.id === serviceId) {
+          return {
+            ...s,
+            status: isCurrentlyActive ? 'Inactive' : 'Active'
+          };
+        }
+        return s;
+      });
+      
+      setServices(updatedServices);
+      toast.success(`Service ${isCurrentlyActive ? 'deactivated' : 'activated'} successfully`);
+    } catch (err) {
+      console.error('Failed to update service status:', err);
+      toast.error('Failed to update service status');
     }
   };
 
-  // Mock service data for demonstration
-  const getMockServices = () => {
-    const baseServices = [
-      { 
-        id: 1, 
-        name: 'Basic Plumbing Repair', 
-        description: 'Fix leaking pipes, taps, toilets and basic plumbing issues.',
-        category: 'Plumbing', 
-        price: 'R350', 
-        duration: '1 hour',
-        provider: 'QuickFix Plumbing',
-        providerId: 101,
-        status: 'Active',
-        featured: true,
-        rating: 4.7,
-        reviews: 128,
-        image: '/images/services/plumbing.jpg'
-      },
-      { 
-        id: 2, 
-        name: 'Electrical Wiring Installation', 
-        description: 'Professional installation of electrical wiring for homes and offices.',
-        category: 'Electrical', 
-        price: 'R680', 
-        duration: '3 hours',
-        provider: 'PowerPros Electric',
-        providerId: 102,
-        status: 'Active',
-        featured: false,
-        rating: 4.5,
-        reviews: 97,
-        image: '/images/services/electrical.jpg'
-      },
-      { 
-        id: 3, 
-        name: 'Standard Home Cleaning', 
-        description: 'Comprehensive cleaning service for all rooms in your home.',
-        category: 'Cleaning', 
-        price: 'R450', 
-        duration: '2.5 hours',
-        provider: 'CleanSweep Services',
-        providerId: 103,
-        status: 'Active',
-        featured: true,
-        rating: 4.9,
-        reviews: 215,
-        image: '/images/services/cleaning.jpg'
-      },
-      { 
-        id: 4, 
-        name: 'Furniture Assembly', 
-        description: 'Expert assembly of all types of furniture from major retailers.',
-        category: 'Handyman', 
-        price: 'R280-R750', 
-        duration: 'Varies',
-        provider: 'AssemblyPros',
-        providerId: 104,
-        status: 'Inactive',
-        featured: false,
-        rating: 4.3,
-        reviews: 76,
-        image: '/images/services/furniture.jpg'
-      },
-      { 
-        id: 5, 
-        name: 'Garden Maintenance', 
-        description: 'Regular garden maintenance including mowing, pruning, and weeding.',
-        category: 'Gardening', 
-        price: 'R550', 
-        duration: '3 hours',
-        provider: 'Garden Gurus',
-        providerId: 105,
-        status: 'Active',
-        featured: false,
-        rating: 4.6,
-        reviews: 89,
-        image: '/images/services/gardening.jpg'
-      },
-      { 
-        id: 6, 
-        name: 'Computer Repair & Virus Removal', 
-        description: 'PC and laptop repair, virus removal, and system optimization.',
-        category: 'IT Services', 
-        price: 'R450', 
-        duration: '2 hours',
-        provider: 'Tech Wizards',
-        providerId: 106,
-        status: 'Pending Review',
-        featured: false,
-        rating: 4.4,
-        reviews: 52,
-        image: '/images/services/computer.jpg'
-      },
-      { 
-        id: 7, 
-        name: 'AC Installation & Repair', 
-        description: 'Professional installation and repair of air conditioning units.',
-        category: 'HVAC', 
-        price: 'R850', 
-        duration: '3-4 hours',
-        provider: 'CoolAir Services',
-        providerId: 107,
-        status: 'Active',
-        featured: true,
-        rating: 4.8,
-        reviews: 143,
-        image: '/images/services/ac.jpg'
-      },
-    ];
+  // Add these functions after handleToggleStatus and before the return statement:
 
-    // Apply filters
-    let filteredServices = [...baseServices];
-    
-    if (filterCategory !== 'all') {
-      filteredServices = filteredServices.filter(
-        service => service.category.toLowerCase() === filterCategory.toLowerCase()
-      );
-    }
-    
-    if (filterStatus !== 'all') {
-      filteredServices = filteredServices.filter(
-        service => service.status.toLowerCase() === filterStatus.toLowerCase()
-      );
-    }
-    
-    // Apply search term if present
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filteredServices = filteredServices.filter(
-        service => 
-          service.name.toLowerCase().includes(term) ||
-          service.description.toLowerCase().includes(term) ||
-          service.provider.toLowerCase().includes(term) ||
-          service.category.toLowerCase().includes(term)
-      );
-    }
-    
-    return filteredServices;
-  };
-
+  // Handle search input submission
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchServices(); // This will apply the search term in getMockServices
+    // The search is handled by the useEffect that watches searchTerm
+    // This function just prevents the form from refreshing the page
   };
 
+  // Handle filter changes
+  const handleFilterChange = (type, value) => {
+    if (type === 'category') {
+      setFilterCategory(value);
+    } else if (type === 'status') {
+      setFilterStatus(value);
+    }
+    // The useEffect hook will handle the refetch
+  };
+
+  // Handle page changes
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // In a real app, this would trigger a new API call with the updated page
   };
 
+  // Handle delete service function
   const handleDeleteService = (service) => {
     setServiceToDelete(service);
     setShowDeleteModal(true);
   };
 
+  // Confirm delete function
   const confirmDeleteService = async () => {
     if (!serviceToDelete) return;
     
     try {
       setIsDeleting(true);
-      // In a real app, make an API call to delete the service
-      // await apiClient.delete(`/admin/services/${serviceToDelete.id}`);
       
-      // Simulate API call
-      setTimeout(() => {
-        // Remove the service from the state
-        setServices(services.filter(s => s.id !== serviceToDelete.id));
-        setShowDeleteModal(false);
-        setServiceToDelete(null);
-        setIsDeleting(false);
-      }, 1000);
+      await adminAPI.deleteService(serviceToDelete.id);
+      
+      // Remove deleted service from the state
+      setServices(services.filter(s => s.id !== serviceToDelete.id));
+      setShowDeleteModal(false);
+      setServiceToDelete(null);
+      
+      // Show success message
+      toast.success('Service deleted successfully');
     } catch (err) {
       console.error('Failed to delete service:', err);
+      toast.error('Failed to delete service. Please try again.');
+    } finally {
       setIsDeleting(false);
-      // Handle error (show error message)
     }
   };
 
+  // View service function
   const handleViewService = (service) => {
     setSelectedService(service);
     setShowServiceModal(true);
   };
 
+  // Toggle featured function
   const handleToggleFeatured = async (serviceId) => {
     try {
-      // In a real app, make an API call to toggle featured status
-      // await apiClient.patch(`/admin/services/${serviceId}/featured`);
+      const service = services.find(s => s.id === serviceId);
+      if (!service) return;
+
+      // Update the service with the toggled featured status
+      const updatedService = {
+        ...service.originalData,
+        featured: !service.featured
+      };
+
+      await adminAPI.updateService(serviceId, updatedService);
       
-      // Simulate API call
-      setTimeout(() => {
-        // Update featured status in local state
-        const updatedServices = services.map(service => {
-          if (service.id === serviceId) {
-            return { ...service, featured: !service.featured };
-          }
-          return service;
-        });
-        setServices(updatedServices);
-      }, 500);
+      // Update state
+      const updatedServices = services.map(s => {
+        if (s.id === serviceId) {
+          return { ...s, featured: !s.featured };
+        }
+        return s;
+      });
+      
+      setServices(updatedServices);
+      toast.success(`Service ${!service.featured ? 'added to' : 'removed from'} featured`);
     } catch (err) {
       console.error('Failed to toggle featured status:', err);
-      // Handle error (show error notification)
+      toast.error('Failed to update service');
     }
   };
-
-  const handleToggleStatus = async (serviceId, currentStatus) => {
-    try {
-      // In a real app, make an API call to toggle service status
-      // const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-      // await apiClient.patch(`/admin/services/${serviceId}/status`, { status: newStatus });
-      
-      // Simulate API call
-      setTimeout(() => {
-        // Update status in local state
-        const updatedServices = services.map(service => {
-          if (service.id === serviceId) {
-            return { 
-              ...service, 
-              status: service.status === 'Active' ? 'Inactive' : 'Active' 
-            };
-          }
-          return service;
-        });
-        setServices(updatedServices);
-      }, 500);
-    } catch (err) {
-      console.error('Failed to update service status:', err);
-      // Handle error (show error notification)
-    }
-  };
-
-  // Service categories for filter
-  const serviceCategories = [
-    'Plumbing',
-    'Electrical',
-    'Cleaning',
-    'Handyman',
-    'Gardening',
-    'IT Services',
-    'HVAC',
-    'Home Improvement',
-    'Appliance Repair'
-  ];
 
   // Helper to get status badge color
   const getStatusBadgeColor = (status) => {
@@ -317,8 +294,11 @@ const Services = () => {
     }
   };
 
+  // No changes needed to other handlers
+
   return (
     <div className="space-y-6">
+      {/* Header section - no changes needed */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Service Management</h1>
         <Link
@@ -331,7 +311,7 @@ const Services = () => {
       </div>
 
       <div className="rounded-lg border bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        {/* Search and filter bar */}
+        {/* Search and filter bar - Keep search, modify filter */}
         <div className="border-b border-slate-200 p-4 dark:border-slate-700">
           <div className="flex flex-col justify-between gap-4 sm:flex-row">
             <form onSubmit={handleSearch} className="relative flex w-full max-w-md">
@@ -359,16 +339,17 @@ const Services = () => {
                 <span>Filter</span>
               </button>
               <button
-                onClick={fetchServices}
+                onClick={() => fetchServices()}
                 className="ml-2 rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
                 title="Refresh"
+                disabled={isRefreshing}
               >
-                <ArrowPathIcon className="h-5 w-5" />
+                <ArrowPathIcon className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
 
-          {/* Expanded filters */}
+          {/* Expanded filters - Use static categories */}
           {showFilters && (
             <div className="mt-4 flex flex-wrap gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-700/50">
               <div>
@@ -377,11 +358,11 @@ const Services = () => {
                 </label>
                 <select
                   value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
+                  onChange={(e) => handleFilterChange('category', e.target.value)}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                 >
                   <option value="all">All Categories</option>
-                  {serviceCategories.map(category => (
+                  {staticCategories.map(category => (
                     <option key={category} value={category.toLowerCase()}>
                       {category}
                     </option>
@@ -395,13 +376,12 @@ const Services = () => {
                 </label>
                 <select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
-                  <option value="pending review">Pending Review</option>
                 </select>
               </div>
             </div>
@@ -480,17 +460,21 @@ const Services = () => {
                     </div>
                     
                     <div className="mb-2 flex items-center text-sm">
-                      <span className="text-slate-600 dark:text-slate-300">Provider: </span>
+                      <span className="text-slate-600 dark:text-slate-300">Provider ID: </span>
                       <span className="ml-1 font-medium text-purple-600 dark:text-purple-400">
-                        {service.provider}
+                        {service.providerId}
                       </span>
                     </div>
                     
                     <div className="mt-auto flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">{service.rating}</div>
-                        <span className="mx-1 text-xs text-slate-600 dark:text-slate-400">•</span>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">{service.reviews} reviews</div>
+                        <div className="text-sm font-medium text-slate-900 dark:text-white">{service.rating || "No ratings"}</div>
+                        {service.rating > 0 && (
+                          <>
+                            <span className="mx-1 text-xs text-slate-600 dark:text-slate-400">•</span>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">{service.reviews} reviews</div>
+                          </>
+                        )}
                       </div>
                       
                       <div className="flex space-x-2">
@@ -544,8 +528,9 @@ const Services = () => {
           <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700 sm:px-6">
             <div className="hidden sm:block">
               <p className="text-sm text-slate-700 dark:text-slate-300">
-                Showing <span className="font-medium">1</span> to <span className="font-medium">{services.length}</span> of{' '}
-                <span className="font-medium">42</span> services
+                Showing <span className="font-medium">{((currentPage - 1) * pageSize) + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * pageSize, totalServices)}</span> of{' '}
+                <span className="font-medium">{totalServices}</span> services
               </p>
             </div>
             <div className="flex flex-1 justify-between sm:justify-end">
@@ -650,12 +635,12 @@ const Services = () => {
                 
                 <div className="mt-1 flex items-center text-sm">
                   <span className="font-medium text-slate-700 dark:text-slate-300">Category:</span>
-                  <span className="ml-1 text-slate-600 dark:text-slate-400">{selectedService.category}</span>
+                  <span className="ml-1 text-slate-600 dark:text-slate-400">{selectedService.category || 'Miscellaneous'}</span>
                 </div>
                 
                 <div className="mt-1 flex items-center text-sm">
-                  <span className="font-medium text-slate-700 dark:text-slate-300">Provider:</span>
-                  <span className="ml-1 text-purple-600 dark:text-purple-400">{selectedService.provider}</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Provider ID:</span>
+                  <span className="ml-1 text-purple-600 dark:text-purple-400">{selectedService.providerId}</span>
                 </div>
                 
                 <div className="mt-1 text-sm">
@@ -668,14 +653,23 @@ const Services = () => {
                   <span className="ml-1 text-slate-600 dark:text-slate-400">{selectedService.duration}</span>
                 </div>
                 
-                <div className="mt-2 flex items-center text-sm">
-                  <div className="flex items-center text-yellow-500">
-                    {/* Star icon would go here */}
-                    <span className="ml-1 font-medium text-slate-900 dark:text-white">{selectedService.rating}</span>
-                  </div>
-                  <span className="mx-1 text-slate-400">•</span>
-                  <span className="text-slate-600 dark:text-slate-400">{selectedService.reviews} reviews</span>
+                <div className="mt-1 text-sm">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Created:</span>
+                  <span className="ml-1 text-slate-600 dark:text-slate-400">
+                    {selectedService.createdAt ? new Date(selectedService.createdAt).toLocaleDateString() : 'Unknown'}
+                  </span>
                 </div>
+                
+                {selectedService.rating > 0 && (
+                  <div className="mt-2 flex items-center text-sm">
+                    <div className="flex items-center text-yellow-500">
+                      {/* Star icon would go here */}
+                      <span className="ml-1 font-medium text-slate-900 dark:text-white">{selectedService.rating}</span>
+                    </div>
+                    <span className="mx-1 text-slate-400">•</span>
+                    <span className="text-slate-600 dark:text-slate-400">{selectedService.reviews} reviews</span>
+                  </div>
+                )}
               </div>
             </div>
             
