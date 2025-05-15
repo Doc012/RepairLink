@@ -49,6 +49,8 @@ CREATE TABLE service_providers (
     location VARCHAR(255),
     about TEXT,
     phoneNumber VARCHAR(15),
+    businessEmail VARCHAR(100) UNIQUE,
+    website VARCHAR(255),
     verified BOOLEAN DEFAULT FALSE,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
