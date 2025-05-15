@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }) => {
         } else if (error.response.status === 403) {
           errorMessage = 'Account is locked or does not have sufficient permissions.';
         } else if (error.response.status === 404) {
-          errorMessage = 'User account not found. Please check your email address.';
+          errorMessage = 'User account not found. Please create an account';
         } else {
           errorMessage = error.response.data?.message || error.response.data || 'An error occurred during login';
         }

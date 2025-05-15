@@ -5,7 +5,7 @@ import axios from 'axios';
  * This prevents authentication-related issues like refresh token loops
  */
 const publicApiClient = axios.create({
-  baseURL: 'http://51.20.74.74:8080/api',
+  baseURL: 'http://localhost:8080/api',
   withCredentials: true // Keep this if CORS requires credentials
 });
 

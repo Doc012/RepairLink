@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'http://16.16.201.230:8080/api',
+  baseURL: 'http://localhost:8080/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
@@ -69,7 +69,7 @@ instance.interceptors.response.use(
 const handleTokenRefresh = async (failedRequest) => {
   try {
     const response = await axios.post(
-      'http://16.16.201.230:8080/api/auth/refresh-token',
+      'http://localhost:8080/api/auth/refresh-token',
       {},
       { withCredentials: true }
     );
