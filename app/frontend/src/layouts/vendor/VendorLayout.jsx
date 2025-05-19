@@ -14,7 +14,10 @@ import {
   SunIcon,
   MoonIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  StarIcon, // Added StarIcon for reviews
+  WrenchScrewdriverIcon, // Added WrenchScrewdriverIcon for services
+  ClockIcon, // Added ClockIcon for history
 } from '@heroicons/react/24/outline';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/auth/AuthContext';
@@ -70,14 +73,16 @@ const ConfirmationDialog = ({ isOpen, title, message, onConfirm, onCancel, isLoa
   );
 };
 
-// Navigation items for service provider
+// Updated navigation items for service provider
 const navigation = [
   { name: 'Dashboard', href: '/vendor/dashboard', icon: HomeIcon },               // Overview - always first
-  { name: 'Orders', href: '/vendor/orders', icon: ClipboardDocumentListIcon },  // Daily operations
-  { name: 'Services', href: '/vendor/services', icon: Cog8ToothIcon },  // Core business offering
-  { name: 'Statistics', href: '/vendor/statistics', icon: ChartBarIcon },  // Business insights
+  { name: 'Orders', href: '/vendor/orders', icon: ClipboardDocumentListIcon },    // Daily operations
+  { name: 'Services', href: '/vendor/services', icon: WrenchScrewdriverIcon },    // Core business offering
+  { name: 'Reviews', href: '/vendor/reviews', icon: StarIcon },                   // Customer reviews
+  { name: 'History', href: '/vendor/history', icon: ClockIcon },                  // History
+  { name: 'Statistics', href: '/vendor/statistics', icon: ChartBarIcon },         // Business insights
   { name: 'Business Profile', href: '/vendor/business', icon: BuildingStorefrontIcon }, // Business settings
-  { name: 'My Profile', href: '/vendor/profile', icon: UserCircleIcon },  // Personal settings - always last
+  { name: 'My Profile', href: '/vendor/profile', icon: UserCircleIcon },          // Personal settings - always last
 ];
 
 const VendorLayout = () => {

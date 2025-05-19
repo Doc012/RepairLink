@@ -2,23 +2,22 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { 
   HomeIcon, 
-  CalendarIcon, 
-  UserCircleIcon, 
-  StarIcon,
-  Bars3Icon,
-  XMarkIcon,
+  UserGroupIcon,
   BuildingStorefrontIcon,
-  WrenchScrewdriverIcon,
+  ShieldCheckIcon,
+  Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   SunIcon,
   MoonIcon,
-  ClockIcon // Add ClockIcon
+  Bars3Icon,
+  ClipboardDocumentListIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../../contexts/auth/AuthContext'; // Import useAuth
+import { useAuth } from '../../contexts/auth/AuthContext';
 
-// Add tooltip component for collapsed state
+// Tooltip component for collapsed state
 const Tooltip = ({ children, text }) => (
   <div className="group relative">
     {children}
@@ -28,7 +27,7 @@ const Tooltip = ({ children, text }) => (
   </div>
 );
 
-// Add Confirmation Dialog component
+// Confirmation Dialog component
 const ConfirmationDialog = ({ isOpen, title, message, onConfirm, onCancel, isLoading }) => {
   if (!isOpen) return null;
 
@@ -69,26 +68,33 @@ const ConfirmationDialog = ({ isOpen, title, message, onConfirm, onCancel, isLoa
   );
 };
 
-// Update the navigation array to include the History link
+// Navigation items for admin
 const navigation = [
-  { name: 'Dashboard', href: '/user/dashboard', icon: HomeIcon },
-  { name: 'My Bookings', href: '/user/bookings', icon: CalendarIcon },
-  { name: 'Services', href: '/user/services', icon: WrenchScrewdriverIcon },
-  { name: 'Service Providers', href: '/user/providers', icon: BuildingStorefrontIcon },
-  { name: 'My History', href: '/user/history', icon: ClockIcon }, // Add this line
-  { name: 'My Reviews', href: '/user/reviews', icon: StarIcon },
-  { name: 'My Profile', href: '/user/profile', icon: UserCircleIcon },
+  { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
+  { name: 'Users', href: '/admin/users', icon: UserGroupIcon },
+  { name: 'Service Providers', href: '/admin/providers', icon: BuildingStorefrontIcon },
+  { name: 'Services', href: '/admin/services', icon: Cog6ToothIcon },
+  { name: 'Reports', href: '/admin/reports', icon: ClipboardDocumentListIcon },
+  { name: 'Settings', href: '/admin/settings', icon: ShieldCheckIcon },
+  { name: 'My Profile', href: '/admin/profile', icon: UserCircleIcon },
 ];
 
-const CustomerLayout = () => {
+const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
-  const [isLoggingOut, setIsLoggingOut] = useState(false); // Add state for logout in progress
-  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, user: authUser } = useAuth(); // Get logout function and user from auth context
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+  const { logout, user: authUser } = useAuth();
+
+  // Admin data (replace with actual data from your auth system)
+  const [admin] = useState({
+    name: authUser?.name || "Admin",
+    surname: authUser?.surname || "User",
+    picUrl: authUser?.picUrl || "/src/assets/images/avatar-placeholder.jpg"
+  });
 
   const toggleTheme = () => {
     const root = document.documentElement;
@@ -103,14 +109,6 @@ const CustomerLayout = () => {
     }
   };
 
-  // Add mock user data (replace with auth user data if available)
-  const [user] = useState({
-    name: authUser?.name || "RepairLink",
-    surname: authUser?.surname || "",
-    picUrl: authUser?.picUrl || "/src/assets/images/hero/repair-3.jpg"
-  });
-
-  // New functions for logout confirmation
   const handleLogoutClick = () => {
     setShowLogoutConfirmation(true);
   };
@@ -140,7 +138,7 @@ const CustomerLayout = () => {
       <ConfirmationDialog
         isOpen={showLogoutConfirmation}
         title="Confirm Logout"
-        message="Are you sure you want to log out of your account?"
+        message="Are you sure you want to log out of your admin account?"
         onConfirm={handleConfirmLogout}
         onCancel={handleCancelLogout}
         isLoading={isLoggingOut}
@@ -148,41 +146,38 @@ const CustomerLayout = () => {
       
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 -mr-10 flex flex-col transform overflow-x-hidden border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-700 dark:bg-slate-800 
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col transform overflow-x-hidden border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-700 dark:bg-slate-800 
           lg:static lg:transition-[width,transform]
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
           ${isDesktopCollapsed ? 'lg:w-16' : 'lg:w-52'} 
           lg:translate-x-0`}
       >
-        {/* Logo and collapse button section */}
+        {/* Admin Profile Section */}
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-slate-700">
           {isDesktopCollapsed ? (
-            <Tooltip text={`${user.name} ${user.surname}`}>
+            <Tooltip text="Admin Dashboard">
               <div className="flex items-center">
                 <img
-                  src={user.picUrl}
-                  alt={`${user.name}'s profile`}
-                  className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-500"
+                  src={admin.picUrl}
+                  alt="Admin"
+                  className="h-10 w-10 rounded-full object-cover ring-2 ring-purple-500"
                 />
               </div>
             </Tooltip>
           ) : (
             <div className="flex items-center space-x-3">
               <img
-                src={user.picUrl}
-                alt={`${user.name}'s profile`}
-                className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-500"
+                src={admin.picUrl}
+                alt="Admin"
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-purple-500"
               />
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-gray-700 dark:text-slate-200">
-                  {user.name} {user.surname}
+                  {admin.name} {admin.surname}
                 </span>
-                <Link
-                  to="/user/profile"
-                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  View Profile
-                </Link>
+                <span className="text-xs text-purple-600 dark:text-purple-400">
+                  System Administrator
+                </span>
               </div>
             </div>
           )}
@@ -198,7 +193,7 @@ const CustomerLayout = () => {
                     to={item.href}
                     className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
                       location.pathname === item.href
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                        ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
                         : 'text-gray-600 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`}
                   >
@@ -210,7 +205,7 @@ const CustomerLayout = () => {
                   to={item.href}
                   className={`flex h-10 items-center rounded-lg px-3 transition-colors ${
                     location.pathname === item.href
-                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                      ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
                   }`}
                 >
@@ -222,17 +217,14 @@ const CustomerLayout = () => {
           ))}
         </nav>
 
-        {/* Updated Logout button */}
+        {/* Logout button */}
         <div className="border-t border-gray-200 p-4 dark:border-slate-700">
           {isDesktopCollapsed ? (
             <Tooltip text="Logout">
               <button
                 onClick={handleLogoutClick}
+                className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 hover:text-red-600 dark:hover:bg-slate-700 dark:hover:text-red-400"
                 disabled={isLoggingOut}
-                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors 
-                  ${isLoggingOut 
-                    ? 'cursor-not-allowed opacity-50' 
-                    : 'hover:bg-gray-100 hover:text-red-600 dark:hover:bg-slate-700 dark:hover:text-red-400'}`}
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
               </button>
@@ -240,11 +232,8 @@ const CustomerLayout = () => {
           ) : (
             <button
               onClick={handleLogoutClick}
+              className="flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-red-400"
               disabled={isLoggingOut}
-              className={`flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors 
-                ${isLoggingOut 
-                  ? 'cursor-not-allowed opacity-50' 
-                  : 'hover:bg-gray-100 hover:text-red-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-red-400'}`}
             >
               <ArrowRightOnRectangleIcon className="h-5 w-5" />
               <span className="ml-3">Logout</span>
@@ -253,7 +242,7 @@ const CustomerLayout = () => {
         </div>
       </aside>
 
-      {/* Collapse button - Moved outside sidebar */}
+      {/* Collapse button */}
       <button
         onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
         className={`fixed left-0 top-4 z-50 hidden rounded-r-lg border border-l-0 border-gray-200 bg-white p-1.5 text-gray-500 transition-all duration-300 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white lg:block ${
@@ -268,10 +257,10 @@ const CustomerLayout = () => {
         )}
       </button>
 
-      {/* Desktop theme toggle button */}
+      {/* Theme toggle button */}
       <button
         onClick={toggleTheme}
-        className={`fixed right-10 top-6 z-50 hidden rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition-all duration-300 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white lg:block`}
+        className={`fixed right-6 top-6 z-50 hidden rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition-all duration-300 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white lg:block`}
         title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {isDark ? (
@@ -305,7 +294,7 @@ const CustomerLayout = () => {
               <Bars3Icon className="h-6 w-6" />
             </button>
             <span className="text-lg font-semibold text-gray-900 dark:text-white">
-              RepairLink
+              Admin Dashboard
             </span>
             <button
               onClick={toggleTheme}
@@ -332,4 +321,4 @@ const CustomerLayout = () => {
   );
 };
 
-export default CustomerLayout;
+export default AdminLayout;

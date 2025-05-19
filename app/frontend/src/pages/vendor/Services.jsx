@@ -647,7 +647,9 @@ const fetchServices = async () => {
                           </div>
                           
                           <p className="mb-4 h-12 overflow-hidden text-sm text-gray-600 dark:text-gray-300">
-                            {service.description}
+                            {service.description.length > 70 
+                              ? `${service.description.substring(0, 70)}...` 
+                              : service.description}
                           </p>
                           
                           <div className="mt-4 flex items-center justify-between">
@@ -951,10 +953,12 @@ const fetchServices = async () => {
   return renderContent();
 };
 
+// Update the ServiceReviewsModal component
 const ServiceReviewsModal = ({ serviceId, serviceName, onClose }) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [customerMap, setCustomerMap] = useState({});
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -962,7 +966,11 @@ const ServiceReviewsModal = ({ serviceId, serviceName, onClose }) => {
       try {
         // Use the existing API endpoint for service reviews
         const response = await publicAPI.getServiceReviews(serviceId);
-        setReviews(response.data || []);
+        const reviewsData = response.data || [];
+        setReviews(reviewsData);
+        
+        // Fetch customer details for all reviews
+        await fetchCustomerDetails(reviewsData);
       } catch (err) {
         setError("Failed to load reviews");
       } finally {
@@ -972,6 +980,59 @@ const ServiceReviewsModal = ({ serviceId, serviceName, onClose }) => {
 
     fetchReviews();
   }, [serviceId]);
+
+  // Add this function to fetch customer details
+  const fetchCustomerDetails = async (reviewsData) => {
+    const uniqueCustomerIds = [...new Set(reviewsData.map(review => review.customerID).filter(Boolean))];
+    const customerData = {};
+    
+    for (const customerId of uniqueCustomerIds) {
+      try {
+        // Get customer's user ID
+        const customerResponse = await apiClient.get(`/v1/customers/${customerId}`);
+        if (!customerResponse?.data?.userID) {
+          customerData[customerId] = { fullName: `Customer #${customerId}` };
+          continue;
+        }
+        
+        const userId = customerResponse.data.userID;
+        
+        // Get user details
+        const userResponse = await apiClient.get(`/v1/users/${userId}`);
+        if (userResponse?.data) {
+          const userData = userResponse.data;
+          customerData[customerId] = {
+            name: userData.name || '',
+            surname: userData.surname || '',
+            fullName: userData.name && userData.surname 
+              ? `${userData.name} ${userData.surname}`
+              : `Customer #${customerId}`,
+            email: userData.email || '',
+            phoneNumber: userData.phoneNumber || ''
+          };
+        } else {
+          customerData[customerId] = { fullName: `Customer #${customerId}` };
+        }
+      } catch (error) {
+        console.error(`Failed to fetch customer with ID ${customerId}:`, error);
+        customerData[customerId] = { fullName: `Customer #${customerId}` };
+      }
+    }
+    
+    setCustomerMap(customerData);
+  };
+
+  // Helper function to get customer name
+  const getCustomerName = (review) => {
+    if (!review?.customerID) return "Anonymous Customer";
+    return customerMap[review.customerID]?.fullName || `Customer #${review.customerID}`;
+  };
+
+  // Helper function to get customer initials for avatar
+  const getCustomerInitials = (review) => {
+    if (!review?.customerID) return "A";
+    return customerMap[review.customerID]?.name?.charAt(0) || 'C';
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -1002,7 +1063,23 @@ const ServiceReviewsModal = ({ serviceId, serviceName, onClose }) => {
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {reviews.map(review => (
                   <div key={review.id} className="border-b border-gray-200 dark:border-slate-700 pb-4 last:border-0">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between mb-3">
+                      {/* Customer info with avatar */}
+                      <div className="flex items-center">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 mr-3">
+                          {getCustomerInitials(review)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {getCustomerName(review)}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Rating */}
                       <div className="flex items-center">
                         <div className="flex text-yellow-400">
                           {[...Array(5)].map((_, i) => (
@@ -1016,19 +1093,12 @@ const ServiceReviewsModal = ({ serviceId, serviceName, onClose }) => {
                           {review.rating.toFixed(1)}
                         </span>
                       </div>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </span>
                     </div>
-                    <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                      {review.comment}
+                    
+                    {/* Review comment */}
+                    <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-700/30 p-3 rounded-lg">
+                      {review.comment || "No comment provided"}
                     </p>
-                    <div className="mt-2 flex items-center">
-                      <UserIcon className="h-4 w-4 text-gray-400 mr-1" />
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {review.customerName || 'Anonymous Customer'}
-                      </span>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -1039,5 +1109,7 @@ const ServiceReviewsModal = ({ serviceId, serviceName, onClose }) => {
     </div>
   );
 };
+
+import apiClient from '../../utils/apiClient';
 
 export default Services;

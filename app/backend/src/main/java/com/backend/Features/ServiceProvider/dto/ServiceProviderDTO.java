@@ -11,6 +11,8 @@ public class ServiceProviderDTO {
     private String location;
     private String about;
     private String phoneNumber;
+    private String businessEmail;
+    private String website;
     private boolean verified;
     private LocalDateTime createdAt;
 
@@ -68,6 +70,22 @@ public class ServiceProviderDTO {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getBusinessEmail() {
+        return businessEmail;
+    }
+
+    public void setBusinessEmail(String businessEmail) {
+        this.businessEmail = businessEmail;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
     }
 
     public boolean isVerified() {
