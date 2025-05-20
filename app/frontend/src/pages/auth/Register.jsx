@@ -164,7 +164,7 @@ const Register = () => {
       
       // Send registration request
       const response = await axios.post(
-        'http://localhost:8080/api/auth/register',
+        'http://13.60.59.231:8080/api/auth/register',
         registrationData
       );
       

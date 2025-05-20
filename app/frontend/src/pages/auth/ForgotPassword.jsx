@@ -26,7 +26,7 @@ const ForgotPassword = () => {
 
     try {
       // Call the API to send password reset instructions
-      const response = await axios.post('http://localhost:8080/api/auth/forgot-password', { 
+      const response = await axios.post('http://13.60.59.231:8080/api/auth/forgot-password', { 
         email: email 
       });
       
