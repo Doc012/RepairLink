@@ -252,7 +252,7 @@ const handleViewProvider = async (providerID) => {
         // Get the token from wherever you store it (localStorage, context, etc.)
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/v1/users/${provider.user.userID}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://13.60.59.231:8080'}/api/v1/users/${provider.user.userID}`, {
           method: 'GET',
           credentials: 'include', // Include cookies if your auth uses cookies
           headers: {
@@ -279,7 +279,7 @@ const handleViewProvider = async (providerID) => {
     
     // Fetch provider services - UPDATED ENDPOINT
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/services/provider/${providerID}`, {
+      const response = await fetch(`http://13.60.59.231:8080/api/v1/services/provider/${providerID}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
