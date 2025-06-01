@@ -105,9 +105,9 @@ const CustomerLayout = () => {
 
   // Add mock user data (replace with auth user data if available)
   const [user] = useState({
-    name: authUser?.name || "John",
-    surname: authUser?.surname || "Doe",
-    picUrl: authUser?.picUrl || "/src/assets/images/hero/repair-3.jpg"
+    name: authUser?.name || "RepairLink",
+    surname: authUser?.surname || "",
+    picUrl: authUser?.picUrl || "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg?semt=ais_hybrid&w=740"
   });
 
   // New functions for logout confirmation

@@ -80,7 +80,7 @@ const VendorProfile = () => {
     description: '',
     roles: [],
     userID: null,
-    picUrl: "/src/assets/images/hero/repair-3.jpg",
+    picUrl: "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg?semt=ais_hybrid&w=740",
     joinedDate: '',
     serviceCategory: '',
     businessPhone: '',
@@ -208,7 +208,7 @@ const fetchProfile = async () => {
           phoneNumber: userInfo.phoneNumber || '',
           userID: correctUserID,
           roles: userInfo.roleType ? [{ authority: `ROLE_${userInfo.roleType.roleType}` }] : [],
-          picUrl: userInfo.picUrl || "/src/assets/images/hero/repair-3.jpg",
+          picUrl: userInfo.picUrl || "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg?semt=ais_hybrid&w=740",
           joinedDate: userInfo.createdAt || '',
           
           // Vendor specific fields from business API
