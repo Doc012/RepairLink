@@ -252,7 +252,7 @@ const handleViewProvider = async (providerID) => {
         // Get the token from wherever you store it (localStorage, context, etc.)
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://13.60.59.231:8080'}/api/v1/users/${provider.user.userID}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://repairlink.store'}/api/v1/users/${provider.user.userID}`, {
           method: 'GET',
           credentials: 'include', // Include cookies if your auth uses cookies
           headers: {
@@ -279,7 +279,7 @@ const handleViewProvider = async (providerID) => {
     
     // Fetch provider services - UPDATED ENDPOINT
     try {
-      const response = await fetch(`http://13.60.59.231:8080/api/v1/services/provider/${providerID}`, {
+      const response = await fetch(`https://repairlink.store/api/v1/services/provider/${providerID}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -834,7 +834,7 @@ const handleViewProvider = async (providerID) => {
                         <li className="flex items-center">
                           <GlobeAltIcon className="mr-2 h-5 w-5 text-gray-400" />
                           <a 
-                            href={profileModal.provider.website.startsWith('http') ? profileModal.provider.website : `https://${profileModal.provider.website}`} 
+                            href={profileModal.provider.website.startsWith('https') ? profileModal.provider.website : `https://${profileModal.provider.website}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline dark:text-blue-400"

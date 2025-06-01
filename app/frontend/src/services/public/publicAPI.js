@@ -5,7 +5,7 @@ import axios from 'axios';
  * This prevents authentication-related issues like refresh token loops
  */
 const publicApiClient = axios.create({
-  baseURL: 'http://13.60.59.231:8080/api',
+  baseURL: 'https://repairlink.store/api',
   withCredentials: true // Keep this if CORS requires credentials
 });
 

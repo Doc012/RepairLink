@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'http://13.60.59.231:8080/api',
+  baseURL: 'https://repairlink.store/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
@@ -69,7 +69,7 @@ instance.interceptors.response.use(
 const handleTokenRefresh = async (failedRequest) => {
   try {
     const response = await axios.post(
-      'http://13.60.59.231:8080/api/auth/refresh-token',
+      'https://repairlink.store/api/auth/refresh-token',
       {},
       { withCredentials: true }
     );

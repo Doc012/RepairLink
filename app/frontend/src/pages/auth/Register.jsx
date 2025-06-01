@@ -164,7 +164,7 @@ const Register = () => {
       
       // Send registration request
       const response = await axios.post(
-        'http://13.60.59.231:8080/api/auth/register',
+        'https://repairlink.store/api/auth/register',
         registrationData
       );
       
