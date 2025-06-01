@@ -253,10 +253,11 @@ const CustomerProviders = () => {
             <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/20 dark:to-transparent">
               <div className="flex items-start space-x-4">
                 <img
-                  src={provider.profilePicUrl || "/src/assets/images/hero/repair-2.jpg"}
+                  src={provider.profilePicUrl || provider.user?.picUrl || '/src/assets/images/hero/repair-2.jpg'}
                   alt={provider.businessName}
                   className="h-24 w-24 rounded-lg object-cover shadow-md ring-2 ring-white dark:ring-slate-700"
                   onError={(e) => {
+                    e.target.onerror = null; 
                     e.target.src = "/src/assets/images/hero/repair-2.jpg"; // Fallback image
                   }}
                 />
@@ -1548,10 +1549,11 @@ const CustomerProviders = () => {
             >
               <div className="aspect-w-16 aspect-h-9">
                 <img
-                  src={provider.profilePicUrl || '/src/assets/images/hero/repair-2.jpg'}
+                  src={provider.profilePicUrl || provider.user?.picUrl || '/src/assets/images/hero/repair-2.jpg'}
                   alt={provider.businessName}
                   className="h-48 w-full object-cover"
                   onError={(e) => {
+                    e.target.onerror = null; 
                     e.target.src = "/src/assets/images/hero/repair-2.jpg"; // Fallback image
                   }}
                 />
