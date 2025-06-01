@@ -25,7 +25,7 @@ const CustomerProfile = () => {
     phoneNumber: '',
     roles: [],
     userID: null,
-    picUrl: "/src/assets/images/hero/repair-3.jpg"
+    picUrl: "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiUk9MRV9WRU5ET1IiLCJzdWIiOiJzcGhhc2hlcGhlcmRAZ21haWwuY29tIiwiaWF0IjoxNzQ4Nzk5NjI5LCJleHAiOjE3NDg4MDE0Mjl9.I7sQpsSY1QbKZa_nQigqUkyt2LWMaJUx0GI6jO2xuuc"
   });
   
   const [editFormData, setEditFormData] = useState({
@@ -80,7 +80,7 @@ const CustomerProfile = () => {
           phoneNumber: userData.phoneNumber || '',
           userID: userData.userID || null,
           roles: userData.roleType ? [{ authority: `ROLE_${userData.roleType.roleType}` }] : [],
-          picUrl: userData.picUrl || "/src/assets/images/hero/repair-3.jpg"
+          picUrl: userData.picUrl || "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg?semt=ais_hybrid&w=740"
         };
         
         setProfile(profileData);
@@ -100,7 +100,7 @@ const CustomerProfile = () => {
             email: user.email || '',
             phoneNumber: user.phoneNumber || '',
             roles: user.roles || [],
-            picUrl: user.picUrl || "/src/assets/images/hero/repair-3.jpg"
+            picUrl: user.picUrl || "https://img.freepik.com/free-vector/blue-circle-with-white-user_78370-4707.jpg?semt=ais_hybrid&w=740"
           };
           
           setProfile(profileData);
