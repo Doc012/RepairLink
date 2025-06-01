@@ -224,7 +224,7 @@ const Professionals = () => {
       {/* Hero Section */}
       <div className="relative h-[400px] w-full overflow-hidden">
         <img
-          src="https://pristineplumbing.com.au/wp-content/themes/pristineplumbing/assets/images/process_bg.png"
+          src="https://www.cancerandwork.ca/wp-content/uploads/2016/04/60045301_group-professionals-career-exploration.jpg"
           alt="Professional Services"
           className="h-full w-full object-cover"
         />

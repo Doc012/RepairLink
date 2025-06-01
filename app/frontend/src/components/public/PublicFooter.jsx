@@ -175,10 +175,24 @@ const PublicFooter = () => {
 
         {/* Bottom Section */}
         <div className="mt-16 border-t border-slate-900/10 dark:border-slate-700 pt-8 sm:mt-20 lg:mt-24">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
               &copy; {new Date().getFullYear()} RepairLink. All rights reserved.
             </p>
+            
+            {/* Developer credit - Add this section */}
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+              Developed by{" "}
+              <a 
+                href="https://mr-sn.netlify.app" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                Siphamandla Ngcepe
+              </a>
+            </p>
+            
             <div className="flex space-x-6">
               {navigation.social.map((item) => (
                 <a 

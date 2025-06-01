@@ -240,7 +240,7 @@ const Services = () => {
       {/* Enhanced Hero Section */}
       <div className="relative h-[400px] w-full overflow-hidden">
         <img
-          src="/src/assets/images/hero/repair-2.jpg"
+          src="https://cdn.corporatefinanceinstitute.com/assets/service-sector.jpeg"
           alt="Professional Services"
           className="h-full w-full object-cover"
         />

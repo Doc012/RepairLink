@@ -110,7 +110,7 @@ const Home = () => {
   const professionals = [
     {
       name: 'Master Plumbing Solutions',
-      image: 'https://www.checkatrade.com/blog/wp-content/uploads/2023/10/plumbing-business-names.jpg',
+      image: 'https://cdn.prod.website-files.com/623ce1aee93cd069d36b47d6/66ad0012cc6216945339e15b_the-technician-checking-the-heating-system-in-the-2024-04-16-19-04-10-utc.jpg',
       specialty: 'Commercial & Residential Plumbing',
       rating: 4.9,
       reviews: 156,
