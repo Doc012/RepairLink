@@ -252,19 +252,32 @@ const Dashboard = () => {
         const userId = userResponse.data.userID;
         
         // Step 2.2: Use the userID to get the provider data
-        const providerResponse = await apiClient.get(`/v1/service-providers/by-user/${userId}`);
-        providerData = providerResponse.data;
-      } catch (providerError) {
-        // Check if error indicates no business profile
-        if (providerError.response && 
-            (providerError.response.status === 404 || 
-             (providerError.response.status === 500 && 
-              providerError.response.data?.message?.includes('not found')))) {
-          setNoBusinessProfile(true);
-          throw new Error("Business profile not found. Please create a business profile.");
+        try {
+          const providerResponse = await apiClient.get(`/v1/service-providers/by-user/${userId}`);
+          providerData = providerResponse.data;
+        } catch (providerError) {
+          // Specifically check for 404 (not found) or 500 with message containing "not found"
+          if (providerError.response && 
+              (providerError.response.status === 404 || 
+               (providerError.response.status === 500 && 
+                providerError.response.data?.message?.includes('not found')))) {
+            // This is expected for new vendors - they don't have a profile yet
+            console.log("No provider profile found - new vendor detected");
+            setNoBusinessProfile(true);
+            return; // Exit early to show the business setup guide
+          }
+          
+          // For other errors, rethrow
+          throw new Error("Failed to retrieve provider profile. Please try again.");
         }
-        
-        throw new Error("Failed to retrieve provider profile. Please try again.");
+      } catch (userError) {
+        throw new Error("Failed to retrieve user details. Please try again.");
+      }
+      
+      // Only continue if we have provider data
+      if (!providerData || !providerData.providerID) {
+        setNoBusinessProfile(true);
+        return; // Exit early to show the business setup guide
       }
       
       // Set provider data in state
@@ -496,13 +509,10 @@ const Dashboard = () => {
       setServicesMap(servicesData);
       
     } catch (error) {
+      console.error("Dashboard error:", error);
       // Set proper error state based on the error message
-      if (error.message.includes('Business profile not found')) {
-        setNoBusinessProfile(true);
-      } else {
-        setError(error.message || 'Failed to load dashboard data. Please try again.');
-        toast.error('Failed to load dashboard data');
-      }
+      setError(error.message || 'Failed to load dashboard data. Please try again.');
+      toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
