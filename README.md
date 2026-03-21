@@ -1,16 +1,16 @@
-# 🔧 RepairLink – Service Marketplace Platform
+# RepairLink – Service Marketplace Platform
 
 RepairLink is a full-stack marketplace platform designed to connect customers with local repair service providers. The system enables seamless service discovery, booking, and management through role-based dashboards and secure backend services.
 
 ---
 
-## 🚀 Overview
+## Overview
 
 RepairLink was built as a real-world system to simulate production-level workflows, including authentication, booking flows, and user-role management. The platform focuses on reliability, structured data handling, and scalable backend architecture.
 
 ---
 
-## 👥 User Roles
+## User Roles
 
 - **Customers** – Browse services, book repairs, and leave reviews  
 - **Service Providers (Vendors)** – Manage services, bookings, and availability  
@@ -18,7 +18,7 @@ RepairLink was built as a real-world system to simulate production-level workflo
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 - Secure **JWT-based authentication**  
 - Role-based access control (Customer / Vendor / Admin)  
@@ -30,7 +30,7 @@ RepairLink was built as a real-world system to simulate production-level workflo
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 **Backend:**  
 - Java  
@@ -52,7 +52,7 @@ RepairLink was built as a real-world system to simulate production-level workflo
 
 ---
 
-## ⚙️ Technical Highlights
+## Technical Highlights
 
 - Designed and implemented **secure authentication and authorization flows** using JWT  
 - Built **role-based system architecture**, ensuring controlled access across multiple dashboards  
@@ -63,7 +63,7 @@ RepairLink was built as a real-world system to simulate production-level workflo
 
 ---
 
-## 🧠 Challenges & Solutions
+## Challenges & Solutions
 
 **Challenge:**  
 Implementing secure role-based navigation and ensuring consistent data handling across booking workflows  
@@ -75,7 +75,7 @@ Implementing secure role-based navigation and ensuring consistent data handling 
 
 ---
 
-## ⚠️ Deployment Note
+## Deployment Note
 
 This project was previously deployed on AWS with full backend functionality.  
 Due to billing constraints, the live backend services are currently inactive.  
@@ -92,7 +92,7 @@ https://repairlinkdemo.netlify.app/
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 **Siphamandla**  
 Java Backend Developer | Spring Boot | Full-Stack Experience  
