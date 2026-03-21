@@ -1,27 +1,104 @@
-# RepairLink - Service Booking Platform
+# 🔧 RepairLink – Service Marketplace Platform
 
-**RepairLink** is a full-stack web application that connects customers with local service providers. Customers can book services, manage bookings, and leave feedback. Service providers can register, list their services, and manage their bookings.
-
-This project is being developed iteratively with versioned releases, each version introducing major upgrades and new features that reflect real-world development practices.
+RepairLink is a full-stack marketplace platform designed to connect customers with local repair service providers. The system enables seamless service discovery, booking, and management through role-based dashboards and secure backend services.
 
 ---
 
-## 🚀 Project Goal
+## 🚀 Overview
 
-To create a robust, real-world service booking platform that demonstrates full-stack engineering skills, including authentication, role-based dashboards, booking logic, third-party integrations, and real-time features and all evolving through versioned releases.
+RepairLink was built as a real-world system to simulate production-level workflows, including authentication, booking flows, and user-role management. The platform focuses on reliability, structured data handling, and scalable backend architecture.
 
 ---
 
-## 📦 Versioning Strategy
+## 👥 User Roles
 
-RepairLink is released in milestones. Each stable version is tagged and accessible via the [Releases](https://github.com/Doc012/repairlink/releases) tab.
+- **Customers** – Browse services, book repairs, and leave reviews  
+- **Service Providers (Vendors)** – Manage services, bookings, and availability  
+- **Admin** – Oversee platform activity and user management  
 
-| Version | Highlights |
-|---------|-----------|
-| **v1.0** | Core service booking platform with customer/vendor dashboards, bookings, and reviews |
-| **v1.2** *(in progress)* | Admin dashboard, time slot logic, profile pictures, email/SMS notifications, Google Maps integration |
-| **v1.3** *(upcoming)* | Real-time chat, availability indicators, push notifications, advanced user interaction |
+---
 
-To access a specific version:
-```bash
-git clone -b v1.0 --single-branch https://github.com/Doc012/repairlink.git
+## ✨ Key Features
+
+- Secure **JWT-based authentication**  
+- Role-based access control (Customer / Vendor / Admin)  
+- End-to-end **booking and scheduling system**  
+- Vendor dashboard for managing services and requests  
+- Customer dashboard for tracking bookings  
+- Reviews and ratings system  
+- RESTful API architecture  
+
+---
+
+## 🏗 Architecture
+
+**Backend:**  
+- Java  
+- Spring Boot  
+- REST APIs  
+- JWT Authentication  
+
+**Frontend:**  
+- React  
+- Tailwind CSS  
+
+**Database:**  
+- MySQL  
+
+**Infrastructure:**  
+- AWS (previously deployed)  
+- Docker  
+- Redis  
+
+---
+
+## ⚙️ Technical Highlights
+
+- Designed and implemented **secure authentication and authorization flows** using JWT  
+- Built **role-based system architecture**, ensuring controlled access across multiple dashboards  
+- Modeled relational database structures for **users, services, and bookings**  
+- Implemented **booking workflows with status tracking and data consistency**  
+- Developed REST APIs with proper validation, error handling, and structured responses  
+- Gained hands-on experience deploying and managing backend services on **AWS**  
+
+---
+
+## 🧠 Challenges & Solutions
+
+**Challenge:**  
+Implementing secure role-based navigation and ensuring consistent data handling across booking workflows  
+
+**Solution:**  
+- Structured backend logic to enforce role-based access  
+- Designed relational database schema to maintain data integrity  
+- Applied debugging techniques to trace authentication and data flow issues  
+
+---
+
+## ⚠️ Deployment Note
+
+This project was previously deployed on AWS with full backend functionality.  
+Due to billing constraints, the live backend services are currently inactive.  
+
+👉 However, the full system architecture, source code, and implementation remain available in this repository.
+
+---
+
+## 🔗 Live Demo
+
+https://repairlinkdemo.netlify.app/
+
+*(Frontend available – backend services currently inactive)*
+
+---
+
+## 👨‍💻 Author
+
+**Siphamandla**  
+Java Backend Developer | Spring Boot | Full-Stack Experience  
+
+---
+
+## 📌 Notes
+
+This project was a key milestone in developing real-world backend skills, particularly in authentication, system design, and building production-oriented workflows.
